@@ -42,6 +42,7 @@ function isEmptyInputValue(value: any): boolean {
  * }
  * ```
  *
+ * @publicApi
  */
 export const NG_VALIDATORS = new InjectionToken<Array<Validator|Function>>('NgValidators');
 
@@ -51,6 +52,7 @@ export const NG_VALIDATORS = new InjectionToken<Array<Validator|Function>>('NgVa
  *
  * @see `NG_VALIDATORS`
  *
+ * @publicApi
  */
 export const NG_ASYNC_VALIDATORS =
     new InjectionToken<Array<Validator|Function>>('NgAsyncValidators');
@@ -67,6 +69,7 @@ const EMAIL_REGEXP =
  *
  * @see [Form Validation](/guide/form-validation)
  *
+ * @publicApi
  */
 export class Validators {
   /**
@@ -270,8 +273,12 @@ export class Validators {
   /**
    * @description
    * Validator that requires the control's value to match a regex pattern. This validator is also
-   * provided
-   * by default if you use the HTML5 `pattern` attribute.
+   * provided by default if you use the HTML5 `pattern` attribute.
+   *
+   * Note that if a Regexp is provided, the Regexp is used as is to test the values. On the other
+   * hand, if a string is passed, the `^` character is prepended and the `$` character is
+   * appended to the provided string (if not already present), and the resulting regular
+   * expression is used to test the values.
    *
    * @usageNotes
    *

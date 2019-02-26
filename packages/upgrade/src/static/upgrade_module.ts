@@ -8,12 +8,13 @@
 
 import {Injector, NgModule, NgZone, Testability} from '@angular/core';
 
-import * as angular from '../common/angular1';
-import {$$TESTABILITY, $DELEGATE, $INJECTOR, $INTERVAL, $PROVIDE, INJECTOR_KEY, LAZY_MODULE_REF, UPGRADE_MODULE_NAME} from '../common/constants';
-import {LazyModuleRef, controllerKey} from '../common/util';
+import {IInjectorService, IIntervalService, IProvideService, ITestabilityService, bootstrap, element as angularElement, module as angularModule} from '../common/angular1';
+import {$$TESTABILITY, $DELEGATE, $INJECTOR, $INTERVAL, $PROVIDE, INJECTOR_KEY, LAZY_MODULE_REF, UPGRADE_APP_TYPE_KEY, UPGRADE_MODULE_NAME} from '../common/constants';
+import {LazyModuleRef, UpgradeAppType, controllerKey} from '../common/util';
 
 import {angular1Providers, setTempInjectorRef} from './angular1_providers';
 import {NgAdapterInjector} from './util';
+
 
 
 /**
@@ -139,7 +140,7 @@ import {NgAdapterInjector} from './util';
  *
  * {@example upgrade/static/ts/full/module.ts region="use-ng1-upgraded-service"}
  *
- * @experimental
+ * @publicApi
  */
 @NgModule({providers: [angular1Providers]})
 export class UpgradeModule {
@@ -170,25 +171,23 @@ export class UpgradeModule {
 
     // Create an ng1 module to bootstrap
     const initModule =
-        angular
-            .module(INIT_MODULE_NAME, [])
+        angularModule(INIT_MODULE_NAME, [])
+
+            .constant(UPGRADE_APP_TYPE_KEY, UpgradeAppType.Static)
 
             .value(INJECTOR_KEY, this.injector)
 
             .factory(
                 LAZY_MODULE_REF,
-                [
-                  INJECTOR_KEY,
-                  (injector: Injector) => ({ injector, needsNgZone: false } as LazyModuleRef)
-                ])
+                [INJECTOR_KEY, (injector: Injector) => ({ injector } as LazyModuleRef)])
 
             .config([
               $PROVIDE, $INJECTOR,
-              ($provide: angular.IProvideService, $injector: angular.IInjectorService) => {
+              ($provide: IProvideService, $injector: IInjectorService) => {
                 if ($injector.has($$TESTABILITY)) {
                   $provide.decorator($$TESTABILITY, [
                     $DELEGATE,
-                    (testabilityDelegate: angular.ITestabilityService) => {
+                    (testabilityDelegate: ITestabilityService) => {
                       const originalWhenStable: Function = testabilityDelegate.whenStable;
                       const injector = this.injector;
                       // Cannot use arrow function below because we need the context
@@ -213,7 +212,7 @@ export class UpgradeModule {
                 if ($injector.has($INTERVAL)) {
                   $provide.decorator($INTERVAL, [
                     $DELEGATE,
-                    (intervalDelegate: angular.IIntervalService) => {
+                    (intervalDelegate: IIntervalService) => {
                       // Wrap the $interval service so that setInterval is called outside NgZone,
                       // but the callback is still invoked within it. This is so that $interval
                       // won't block stability, which preserves the behavior from AngularJS.
@@ -241,7 +240,7 @@ export class UpgradeModule {
 
             .run([
               $INJECTOR,
-              ($injector: angular.IInjectorService) => {
+              ($injector: IInjectorService) => {
                 this.$injector = $injector;
 
                 // Initialize the ng1 $injector provider
@@ -249,7 +248,7 @@ export class UpgradeModule {
                 this.injector.get($INJECTOR);
 
                 // Put the injector on the DOM, so that it can be "required"
-                angular.element(element).data !(controllerKey(INJECTOR_KEY), this.injector);
+                angularElement(element).data !(controllerKey(INJECTOR_KEY), this.injector);
 
                 // Wire up the ng1 rootScope to run a digest cycle whenever the zone settles
                 // We need to do this in the next tick so that we don't prevent the bootup
@@ -263,14 +262,14 @@ export class UpgradeModule {
               }
             ]);
 
-    const upgradeModule = angular.module(UPGRADE_MODULE_NAME, [INIT_MODULE_NAME].concat(modules));
+    const upgradeModule = angularModule(UPGRADE_MODULE_NAME, [INIT_MODULE_NAME].concat(modules));
 
     // Make sure resumeBootstrap() only exists if the current bootstrap is deferred
     const windowAngular = (window as any)['angular'];
     windowAngular.resumeBootstrap = undefined;
 
     // Bootstrap the AngularJS application inside our zone
-    this.ngZone.run(() => { angular.bootstrap(element, [upgradeModule.name], config); });
+    this.ngZone.run(() => { bootstrap(element, [upgradeModule.name], config); });
 
     // Patch resumeBootstrap() to run inside the ngZone
     if (windowAngular.resumeBootstrap) {

@@ -12,7 +12,7 @@ ng_module(
             "src/**/*.ts",
         ],
     ),
-    module_name = "@angular/animations/browser",
+    bundle_dts = True,
     deps = [
         "//packages/animations",
         "//packages/core",

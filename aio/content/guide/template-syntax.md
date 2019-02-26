@@ -42,31 +42,46 @@ Begin with the first form of data binding&mdash;interpolation&mdash;to see how m
 
 {@a interpolation}
 
-## Interpolation ( <span class="syntax">{&#xfeff;{...}}</span> )
+## Interpolation and Template Expressions
 
-You met the double-curly braces of interpolation, `{{` and `}}`, early in your Angular education.
+Interpolation allows you to incorporate calculated strings into the text
+between HTML element tags and within attribute assignments. Template
+expressions are what you use to calculate those strings.
 
-<code-example path="template-syntax/src/app/app.component.html" region="first-interpolation" header="src/app/app.component.html" linenums="false">
+The interpolation <live-example></live-example> demonstrates all of
+the syntax and code snippets described in this section.
+
+### Interpolation `{{...}}`
+
+Interpolation refers to embedding expressions into marked up text.
+By default, interpolation uses as its delimiter the double curly braces, `{{` and `}}`.
+
+In the following snippet, `{{ currentCustomer }}` is an example of interpolation.
+
+<code-example path="interpolation/src/app/app.component.html" region="interpolation-example1" header="src/app/app.component.html" linenums="false">
 </code-example>
 
-You use interpolation to weave calculated strings into the text between HTML element tags and within attribute assignments.
+The text between the braces is often the name of a component
+property. Angular replaces that name with the
+string value of the corresponding component property.
 
-<code-example path="template-syntax/src/app/app.component.html" region="title+image" header="src/app/app.component.html" linenums="false">
+<code-example path="interpolation/src/app/app.component.html" region="component-property" header="src/app/app.component.html" linenums="false">
 </code-example>
 
-The text between the braces is often the name of a component property. Angular replaces that name with the
-string value of the corresponding component property. In the example above, Angular evaluates the `title` and `heroImageUrl` properties
-and "fills in the blanks", first displaying a bold application title and then a heroic image.
+In the example above, Angular evaluates the `title` and `itemImageUrl` properties
+and fills in the blanks, first displaying some title text and then an image.
 
-More generally, the text between the braces is a **template expression** that Angular first **evaluates**
-and then **converts to a string**. The following interpolation illustrates the point by adding the two numbers:
+More generally, the text between the braces is a **template expression**
+that Angular first **evaluates** and then **converts to a string**.
+The following interpolation illustrates the point by adding two numbers:
 
-<code-example path="template-syntax/src/app/app.component.html" region="sum-1" header="src/app/app.component.html" linenums="false">
+<code-example path="interpolation/src/app/app.component.html" region="convert-string" header="src/app/app.component.html" linenums="false">
 </code-example>
 
-The expression can invoke methods of the host component such as `getVal()`, seen here:
+The expression can invoke methods of the host component such as `getVal()` in
+the following example:
 
-<code-example path="template-syntax/src/app/app.component.html" region="sum-2" header="src/app/app.component.html" linenums="false">
+<code-example path="interpolation/src/app/app.component.html" region="invoke-method" header="src/app/app.component.html" linenums="false">
 </code-example>
 
 Angular evaluates all expressions in double curly braces,
@@ -74,60 +89,67 @@ converts the expression results to strings, and links them with neighboring lite
 it assigns this composite interpolated result to an **element or directive property**.
 
 You appear to be inserting the result between element tags and assigning it to attributes.
-It's convenient to think so, and you rarely suffer for this mistake.
-Though this is not exactly true. Interpolation is a special syntax that Angular converts into a
-[property binding](guide/template-syntax#property-binding), as is explained [below](guide/template-syntax#property-binding-or-interpolation).
 
-But first, let's take a closer look at template expressions and statements.
+<div class="alert is-helpful">
 
+However, interpolation is a special syntax that Angular converts into a
+property binding.
 
+If you'd like to use something other than `{{` and `}}`, you can
+configure the interpolation delimiter via the
+[interpolation](api/core/Component#interpolation)
+option in the `Component` metadata.
 
-<hr/>
+</div>
 
-{@a template-expressions}
+### Template expressions
 
-## Template expressions
-
-A template **expression** produces a value.
+A template **expression** produces a value and appears within the double
+curly braces, `{{ }}`.
 Angular executes the expression and assigns it to a property of a binding target;
-the target might be an HTML element, a component, or a directive.
+the target could be an HTML element, a component, or a directive.
 
 The interpolation braces in `{{1 + 1}}` surround the template expression `1 + 1`.
-In the [property binding](guide/template-syntax#property-binding) section below,
+In the property binding,
 a template expression appears in quotes to the right of the&nbsp;`=` symbol as in `[property]="expression"`.
 
-You write these template expressions in a language that looks like JavaScript.
-Many JavaScript expressions are legal template expressions, but not all.
+In terms of syntax, template expressions are similar to JavaScript.
+Many JavaScript expressions are legal template expressions, with a few exceptions.
 
-JavaScript expressions that have or promote side effects are prohibited,
+You can't use JavaScript expressions that have or promote side effects,
 including:
 
-* assignments (`=`, `+=`, `-=`, ...)
-* <code>new</code>
-* chaining expressions with <code>;</code> or <code>,</code>
-* increment and decrement operators (`++` and `--`)
+* Assignments (`=`, `+=`, `-=`, `...`)
+* Operators such as `new`, `typeof`, `instanceof`, etc.
+* Chaining expressions with <code>;</code> or <code>,</code>
+* The increment and decrement operators `++` and `--`
+* Some of the ES2015+ operators
 
 Other notable differences from JavaScript syntax include:
 
-* no support for the bitwise operators `|` and `&`
-* new [template expression operators](guide/template-syntax#expression-operators), such as `|`, `?.` and `!`.
-
-{@a expression-context}
+* No support for the bitwise operators such as `|` and `&`
+* New template expression operators, such as `|`, `?.` and `!`
+<!-- link to: guide/template-syntax#expression-operators -->
 
 ### Expression context
 
 The *expression context* is typically the _component_ instance.
-In the following snippets, the `title`  within double-curly braces and the
-`isUnchanged` in quotes refer to properties of the `AppComponent`.
+In the following snippets, the `recommended` within double curly braces and the
+`itemImageUrl2` in quotes refer to properties of the `AppComponent`.
 
-<code-example path="template-syntax/src/app/app.component.html" region="context-component-expression" header="src/app/app.component.html" linenums="false">
+<code-example path="interpolation/src/app/app.component.html" region="component-context" header="src/app/app.component.html" linenums="false">
 </code-example>
 
 An expression may also refer to properties of the _template's_ context
-such as a [template input variable](guide/template-syntax#template-input-variable) (`let hero`)
-or a [template reference variable](guide/template-syntax#ref-vars) (`#heroInput`).
+such as a template input variable,
+<!-- link to built-in-directives#template-input-variables -->
+`let customer`, or a template reference variable, `#customerInput`.
+<!-- link to guide/template-ref-variables -->
 
-<code-example path="template-syntax/src/app/app.component.html" region="context-var" header="src/app/app.component.html" linenums="false">
+<code-example path="interpolation/src/app/app.component.html" region="template-input-variable" header="src/app/app.component.html (template input variable)" linenums="false">
+</code-example>
+
+<code-example path="interpolation/src/app/app.component.html" region="template-reference-variable" header="src/app/app.component.html (template reference variable)" linenums="false">
 </code-example>
 
 The context for terms in an expression is a blend of the _template variables_,
@@ -136,34 +158,32 @@ If you reference a name that belongs to more than one of these namespaces,
 the template variable name takes precedence, followed by a name in the directive's _context_,
 and, lastly, the component's member names.
 
-The previous example presents such a name collision. The component has a `hero`
-property and the `*ngFor` defines a `hero` template variable.
-The `hero` in `{{hero.name}}`
+The previous example presents such a name collision. The component has a `customer`
+property and the `*ngFor` defines a `customer` template variable.
+
+<div class="alert is-helpful">
+
+The `customer` in `{{customer.name}}`
 refers to the template input variable, not the component's property.
 
 Template expressions cannot refer to anything in
-the global namespace (except `undefined`). They can't refer to `window` or `document`. They
-can't call `console.log` or `Math.max`. They are restricted to referencing
+the global namespace, except `undefined`. They can't refer to
+`window` or `document`. Additionally, they
+can't call `console.log()` or `Math.max()` and they are restricted to referencing
 members of the expression context.
 
-
-{@a no-side-effects}
-
-{@a expression-guidelines}
+</div>
 
 ### Expression guidelines
 
-Template expressions can make or break an application.
-Please follow these guidelines:
+When using template expressions follow these guidelines:
 
 * [No visible side effects](guide/template-syntax#no-visible-side-effects)
 * [Quick execution](guide/template-syntax#quick-execution)
 * [Simplicity](guide/template-syntax#simplicity)
-* [Idempotence](guide/template-syntax#idempotence)
 
-The only exceptions to these guidelines should be in specific circumstances that you thoroughly understand.
 
-#### No visible side effects
+### No visible side effects
 
 A template expression should not change any application state other than the value of the
 target property.
@@ -172,37 +192,43 @@ This rule is essential to Angular's "unidirectional data flow" policy.
 You should never worry that reading a component value might change some other displayed value.
 The view should be stable throughout a single rendering pass.
 
-#### Quick execution
+An [idempotent](https://en.wikipedia.org/wiki/Idempotence) expression is ideal because
+it is free of side effects and improves Angular's change detection performance.
+
+In Angular terms, an idempotent expression always returns
+*exactly the same thing* until
+one of its dependent values changes.
+
+Dependent values should not change during a single turn of the event loop.
+If an idempotent expression returns a string or a number, it returns the same string or number when called twice in a row. If the expression returns an object, including an `array`, it returns the same object *reference* when called twice in a row.
+
+<div class="alert is-helpful">
+
+There is one exception to this behavior that applies to `*ngFor`. `*ngFor` has `trackBy` functionality that can deal with referential inequality of objects that when iterating over them.
+
+For more information, see the [*ngFor with `trackBy`](guide/template-syntax#ngfor-with-trackby) section of this guide.
+
+</div>
+
+### Quick execution
 
 Angular executes template expressions after every change detection cycle.
 Change detection cycles are triggered by many asynchronous activities such as
-promise resolutions, http results, timer events, keypresses and mouse moves.
+promise resolutions, HTTP results, timer events, key presses and mouse moves.
 
 Expressions should finish quickly or the user experience may drag, especially on slower devices.
 Consider caching values when their computation is expensive.
 
-#### Simplicity
+### Simplicity
 
-Although it's possible to write quite complex template expressions, you should avoid them.
+Although it's possible to write complex template expressions, it's a better
+practice to avoid them.
 
-A property name or method call should be the norm.
-An occasional Boolean negation (`!`) is OK.
-Otherwise, confine application and business logic to the component itself,
-where it will be easier to develop and test.
+A property name or method call should be the norm, but an occasional Boolean negation, `!`, is OK.
+Otherwise, confine application and business logic to the component,
+where it is easier to develop and test.
 
-#### Idempotence
-
-An [idempotent](https://en.wikipedia.org/wiki/Idempotence) expression is ideal because
-it is free of side effects and improves Angular's change detection performance.
-
-In Angular terms, an idempotent expression always returns *exactly the same thing* until
-one of its dependent values changes.
-
-Dependent values should not change during a single turn of the event loop.
-If an idempotent expression returns a string or a number, it returns the same string or number
-when called twice in a row. If the expression returns an object (including an `array`),
-it returns the same object *reference* when called twice in a row.
-
+<!-- end of Interpolation doc -->
 
 <hr/>
 
@@ -771,7 +797,6 @@ content harmlessly.
 
 
 <hr/>
-
 {@a other-bindings}
 
 ## Attribute, class, and style bindings
@@ -918,55 +943,43 @@ Note that a _style property_ name can be written in either
 
 {@a event-binding}
 
-## Event binding  ( <span class="syntax">(event)</span> )
+## Event binding `(event)`
 
-The bindings directives you've met so far flow data in one direction: **from a component to an element**.
+Event binding allows you to listen for certain events such as
+keystrokes, mouse movements, clicks, and touches. For an example
+demonstrating all of the points in this section, see the <live-example name="event-binding">event binding example</live-example>.
 
-Users don't just stare at the screen. They enter text into input boxes. They pick items from lists.
-They click buttons. Such user actions may result in a flow of data in the opposite direction:
-**from an element to a component**.
-
-The only way to know about a user action is to listen for certain events such as
-keystrokes, mouse movements, clicks, and touches.
-You declare your interest in user actions through Angular event binding.
-
-Event binding syntax consists of a **target event** name
+Angular event binding syntax consists of a **target event** name
 within parentheses on the left of an equal sign, and a quoted
-[template statement](guide/template-syntax#template-statements) on the right.
+template statement on the right.
 The following event binding listens for the button's click events, calling
 the component's `onSave()` method whenever a click occurs:
 
-<code-example path="template-syntax/src/app/app.component.html" region="event-binding-1" header="src/app/app.component.html" linenums="false">
-</code-example>
+<figure>
+  <img src='generated/images/guide/event-binding/syntax-diagram.svg' alt="Syntax diagram">
+</figure>
 
 ### Target event
 
-A **name between parentheses** &mdash; for example, `(click)` &mdash;
-identifies the target event. In the following example, the target is the button's click event.
+As above, the target is the button's click event.
 
-<code-example path="template-syntax/src/app/app.component.html" region="event-binding-1" header="src/app/app.component.html" linenums="false">
+<code-example path="event-binding/src/app/app.component.html" region="event-binding-1" header="src/app/app.component.html" linenums="false">
 </code-example>
 
-Some people prefer the `on-` prefix alternative, known as the **canonical form**:
+Alternatively, use the `on-` prefix, known as the canonical form:
 
-<code-example path="template-syntax/src/app/app.component.html" region="event-binding-2" header="src/app/app.component.html" linenums="false">
+<code-example path="event-binding/src/app/app.component.html" region="event-binding-2" header="src/app/app.component.html" linenums="false">
 </code-example>
 
 Element events may be the more common targets, but Angular looks first to see if the name matches an event property
 of a known directive, as it does in the following example:
 
-<code-example path="template-syntax/src/app/app.component.html" region="event-binding-3" header="src/app/app.component.html" linenums="false">
+<code-example path="event-binding/src/app/app.component.html" region="custom-directive" header="src/app/app.component.html" linenums="false">
 </code-example>
-
-<div class="alert is-helpful">
-
-The `myClick` directive is further described in the section
-on [aliasing input/output properties](guide/template-syntax#aliasing-io).
-
-</div>
 
 If the name fails to match an element event or an output property of a known directive,
 Angular reports an “unknown directive” error.
+
 
 ### *$event* and event handling statements
 
@@ -977,72 +990,73 @@ The template statement typically involves a receiver, which performs an action
 in response to the event, such as storing a value from the HTML control
 into a model.
 
-The binding conveys information about the event, including data values, through
-an **event object named `$event`**.
+The binding conveys information about the event. This information can include data values such as an event object, string, or number named `$event`.
 
-The shape of the event object is determined by the target event.
+The target event determines the shape of the `$event` object.
 If the target event is a native DOM element event, then `$event` is a
 [DOM event object](https://developer.mozilla.org/en-US/docs/Web/Events),
 with properties such as `target` and `target.value`.
 
 Consider this example:
 
-<code-example path="template-syntax/src/app/app.component.html" region="without-NgModel" header="src/app/app.component.html" linenums="false">
+<code-example path="event-binding/src/app/app.component.html" region="event-binding-3" header="src/app/app.component.html" linenums="false">
 </code-example>
 
-This code sets the input box `value` property by binding to the `name` property.
-To listen for changes to the value, the code binds to the input box's `input` event.
+This code sets the `<input>` `value` property by binding to the `name` property.
+To listen for changes to the value, the code binds to the `input`
+event of the `<input>` element.
 When the user makes changes, the `input` event is raised, and the binding executes
 the statement within a context that includes the DOM event object, `$event`.
 
 To update the `name` property, the changed text is retrieved by following the path `$event.target.value`.
 
-If the event belongs to a directive (recall that components are directives),
-`$event` has whatever shape the directive decides to produce.
+If the event belongs to a directive&mdash;recall that components
+are directives&mdash;`$event` has whatever shape the directive produces.
 
-{@a eventemitter}
 
-{@a custom-event}
-
-### Custom events with <span class="syntax">EventEmitter</span>
+### Custom events with `EventEmitter`
 
 Directives typically raise custom events with an Angular [EventEmitter](api/core/EventEmitter).
 The directive creates an `EventEmitter` and exposes it as a property.
 The directive calls `EventEmitter.emit(payload)` to fire an event, passing in a message payload, which can be anything.
 Parent directives listen for the event by binding to this property and accessing the payload through the `$event` object.
 
-Consider a `HeroDetailComponent` that presents hero information and responds to user actions.
-Although the `HeroDetailComponent` has a delete button it doesn't know how to delete the hero itself.
-The best it can do is raise an event reporting the user's delete request.
+Consider an `ItemDetailComponent` that presents item information and responds to user actions.
+Although the `ItemDetailComponent` has a delete button, it doesn't know how to delete the hero. It can only raise an event reporting the user's delete request.
 
-Here are the pertinent excerpts from that `HeroDetailComponent`:
+Here are the pertinent excerpts from that `ItemDetailComponent`:
 
-<code-example path="template-syntax/src/app/hero-detail.component.ts" linenums="false" header="src/app/hero-detail.component.ts (template)" region="template-1">
+
+<code-example path="event-binding/src/app/item-detail/item-detail.component.html" linenums="false" header="src/app/item-detail/item-detail.component.ts (template)" region="line-through">
 </code-example>
 
-<code-example path="template-syntax/src/app/hero-detail.component.ts" linenums="false" header="src/app/hero-detail.component.ts (deleteRequest)" region="deleteRequest">
+<code-example path="event-binding/src/app/item-detail/item-detail.component.ts" linenums="false" header="src/app/item-detail/item-detail.component.ts (deleteRequest)" region="deleteRequest">
 </code-example>
+
 
 The component defines a `deleteRequest` property that returns an `EventEmitter`.
 When the user clicks *delete*, the component invokes the `delete()` method,
-telling the `EventEmitter` to emit a `Hero` object.
+telling the `EventEmitter` to emit an `Item` object.
 
-Now imagine a hosting parent component that binds to the `HeroDetailComponent`'s `deleteRequest` event.
+Now imagine a hosting parent component that binds to the `deleteRequest` event
+of the `ItemDetailComponent`.
 
-<code-example path="template-syntax/src/app/app.component.html" linenums="false" header="src/app/app.component.html (event-binding-to-component)" region="event-binding-to-component">
+<code-example path="event-binding/src/app/app.component.html" linenums="false" header="src/app/app.component.html (event-binding-to-component)" region="event-binding-to-component">
 </code-example>
 
-When the `deleteRequest` event fires, Angular calls the parent component's `deleteHero` method,
-passing the *hero-to-delete* (emitted by `HeroDetail`) in the `$event` variable.
+When the `deleteRequest` event fires, Angular calls the parent component's
+`deleteItem()` method, passing the *item-to-delete* (emitted by `ItemDetail`)
+in the `$event` variable.
 
 ### Template statements have side effects
 
-The `deleteHero` method has a side effect: it deletes a hero.
-Template statement side effects are not just OK, but expected.
+Though [template expressions](guide/template-syntax#template-expressions) shouldn't have [side effects](guide/template-syntax#avoid-side-effects), template
+statements usually do. The `deleteItem()` method does have
+a side effect: it deletes an item.
 
-Deleting the hero updates the model, perhaps triggering other changes
-including queries and saves to a remote server.
-These changes percolate through the system and are ultimately displayed in this and other views.
+Deleting an item updates the model, and depending on your code, triggers
+other changes including queries and saving to a remote server.
+These changes propagate through the system and ultimately display in this and other views.
 
 
 <hr/>
@@ -1673,8 +1687,8 @@ You can only bind to _another_ component or directive through its _Input_ and _O
 
 Remember that all **components** are **directives**.
 
-The following discussion refers to _components_ for brevity and 
-because this topic is mostly a concern for component authors. 
+The following discussion refers to _components_ for brevity and
+because this topic is mostly a concern for component authors.
 </div>
 
 <h3 class="no-toc">Discussion</h3>
@@ -1985,7 +1999,7 @@ You'll need this template operator when you turn on strict null checks. It's opt
 
 {@a any-type-cast-function}
 
-## The `$any` type cast function (`$any( <expression> )`) 
+## The `$any` type cast function (`$any( <expression> )`)
 
 Sometimes a binding expression will be reported as a type error and it is not possible or difficult
 to fully specify the type. To silence the error, you can use the `$any` cast function to cast
@@ -1994,7 +2008,7 @@ the expression to [the `any` type](http://www.typescriptlang.org/docs/handbook/b
 <code-example path="template-syntax/src/app/app.component.html" region="any-type-cast-function-1" header="src/app/app.component.html" linenums="false">
 </code-example>
 
-In this example, when the Angular compiler turns your template into TypeScript code, 
+In this example, when the Angular compiler turns your template into TypeScript code,
 it prevents TypeScript from reporting that `marker` is not a member of the `Hero`
 interface.
 

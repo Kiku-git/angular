@@ -4,10 +4,14 @@ import { SitePage } from './site.po';
 describe(browser.baseUrl, () => {
   const page = new SitePage();
 
-  beforeAll(done => page.init().then(done));
+  beforeAll(() => page.init());
 
   beforeEach(() => browser.waitForAngularEnabled(false));
-  afterEach(() => browser.waitForAngularEnabled(true));
+
+  afterEach(async () => {
+    await page.unregisterSw();
+    await browser.waitForAngularEnabled(true);
+  });
 
   describe('(smoke tests)', () => {
     it('should show the home page', () => {
@@ -29,6 +33,8 @@ describe(browser.baseUrl, () => {
       Object.keys(textPerUrl).forEach(url => {
         it(`should show the page at '${url}'`, () => {
           page.goTo(url);
+          browser.wait(() => page.getDocViewerText(), 5000);  // Wait for the document to be loaded.
+
           expect(page.getDocViewerText()).toContain(textPerUrl[url]);
         });
       });
@@ -39,7 +45,7 @@ describe(browser.baseUrl, () => {
         api: 'api list',
         'guide/architecture': 'architecture',
         'guide/http': 'httpclient',
-        'guide/quickstart': 'quickstart',
+        'guide/quickstart': 'getting started',
         'guide/security': 'security',
         tutorial: 'tutorial',
       };
@@ -47,6 +53,8 @@ describe(browser.baseUrl, () => {
       Object.keys(textPerUrl).forEach(url => {
         it(`should show the page at '${url}'`, () => {
           page.goTo(url);
+          browser.wait(() => page.getDocViewerText(), 5000);  // Wait for the document to be loaded.
+
           expect(page.getDocViewerText()).toContain(textPerUrl[url]);
         });
       });
@@ -68,6 +76,8 @@ describe(browser.baseUrl, () => {
       Object.keys(textPerUrl).forEach(url => {
         it(`should show the page at '${url}'`, () => {
           page.goTo(url);
+          browser.wait(() => page.getDocViewerText(), 5000);  // Wait for the document to be loaded.
+
           expect(page.getDocViewerText()).toContain(textPerUrl[url]);
         });
       });

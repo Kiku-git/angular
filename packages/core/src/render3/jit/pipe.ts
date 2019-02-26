@@ -6,33 +6,28 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {WrappedNodeExpr, compilePipeFromMetadata, jitExpression} from '@angular/compiler';
-
+import {getCompilerFacade} from '../../compiler/compiler_facade';
+import {reflectDependencies} from '../../di/jit/util';
+import {Type} from '../../interface/type';
 import {Pipe} from '../../metadata/directives';
-import {Type} from '../../type';
 import {NG_PIPE_DEF} from '../fields';
-import {stringify} from '../util';
+import {renderStringify} from '../util/misc_utils';
 
 import {angularCoreEnv} from './environment';
-import {reflectDependencies} from './util';
 
 export function compilePipe(type: Type<any>, meta: Pipe): void {
   let ngPipeDef: any = null;
   Object.defineProperty(type, NG_PIPE_DEF, {
     get: () => {
       if (ngPipeDef === null) {
-        const sourceMapUrl = `ng://${stringify(type)}/ngPipeDef.js`;
-
-        const name = type.name;
-        const res = compilePipeFromMetadata({
-          name,
-          type: new WrappedNodeExpr(type),
-          deps: reflectDependencies(type),
-          pipeName: meta.name,
-          pure: meta.pure !== undefined ? meta.pure : true,
-        });
-
-        ngPipeDef = jitExpression(res.expression, angularCoreEnv, sourceMapUrl, res.statements);
+        ngPipeDef = getCompilerFacade().compilePipe(
+            angularCoreEnv, `ng://${renderStringify(type)}/ngPipeDef.js`, {
+              type: type,
+              name: type.name,
+              deps: reflectDependencies(type),
+              pipeName: meta.name,
+              pure: meta.pure !== undefined ? meta.pure : true
+            });
       }
       return ngPipeDef;
     },

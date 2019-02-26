@@ -6,9 +6,9 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {Directive, DoCheck, ElementRef, EventEmitter, Inject, Injector, OnChanges, OnInit, SimpleChange, SimpleChanges, Type} from '@angular/core';
+import {Directive, DoCheck, ElementRef, EventEmitter, Inject, Injector, OnChanges, OnDestroy, OnInit, SimpleChange, SimpleChanges, Type} from '@angular/core';
 
-import * as angular from '../common/angular1';
+import {IAttributes, IDirective, IDirectivePrePost, IInjectorService, ILinkFn, IScope, ITranscludeFunction} from '../common/angular1';
 import {$SCOPE} from '../common/constants';
 import {IBindingDestination, IControllerInstance, UpgradeHelper} from '../common/upgrade_helper';
 import {isFunction, strictEquals} from '../common/util';
@@ -31,7 +31,7 @@ export class UpgradeNg1ComponentAdapterBuilder {
   propertyOutputs: string[] = [];
   checkProperties: string[] = [];
   propertyMap: {[name: string]: string} = {};
-  directive: angular.IDirective|null = null;
+  directive: IDirective|null = null;
   // TODO(issue/24571): remove '!'.
   template !: string;
 
@@ -46,23 +46,13 @@ export class UpgradeNg1ComponentAdapterBuilder {
     const directive = {selector: selector, inputs: this.inputsRename, outputs: this.outputsRename};
 
     @Directive({jit: true, ...directive})
-    class MyClass {
-      // TODO(issue/24571): remove '!'.
-      directive !: angular.IDirective;
-      constructor(
-          @Inject($SCOPE) scope: angular.IScope, injector: Injector, elementRef: ElementRef) {
-        const helper = new UpgradeHelper(injector, name, elementRef, this.directive);
-        return new UpgradeNg1ComponentAdapter(
-            helper, scope, self.template, self.inputs, self.outputs, self.propertyOutputs,
-            self.checkProperties, self.propertyMap) as any;
-      }
-      ngOnInit() { /* needs to be here for ng2 to properly detect it */
-      }
-      ngOnChanges() { /* needs to be here for ng2 to properly detect it */
-      }
-      ngDoCheck() { /* needs to be here for ng2 to properly detect it */
-      }
-      ngOnDestroy() { /* needs to be here for ng2 to properly detect it */
+    class MyClass extends UpgradeNg1ComponentAdapter implements OnInit, OnChanges, DoCheck,
+        OnDestroy {
+      constructor(@Inject($SCOPE) scope: IScope, injector: Injector, elementRef: ElementRef) {
+        super(
+            new UpgradeHelper(injector, name, elementRef, self.directive || undefined), scope,
+            self.template, self.inputs, self.outputs, self.propertyOutputs, self.checkProperties,
+            self.propertyMap) as any;
       }
     }
     this.type = MyClass;
@@ -130,7 +120,7 @@ export class UpgradeNg1ComponentAdapterBuilder {
    */
   static resolve(
       exportedComponents: {[name: string]: UpgradeNg1ComponentAdapterBuilder},
-      $injector: angular.IInjectorService): Promise<string[]> {
+      $injector: IInjectorService): Promise<string[]> {
     const promises = Object.keys(exportedComponents).map(name => {
       const exportedComponent = exportedComponents[name];
       exportedComponent.directive = UpgradeHelper.getDirective($injector, name);
@@ -149,13 +139,13 @@ class UpgradeNg1ComponentAdapter implements OnInit, OnChanges, DoCheck {
   private controllerInstance: IControllerInstance|null = null;
   destinationObj: IBindingDestination|null = null;
   checkLastValues: any[] = [];
-  private directive: angular.IDirective;
+  directive: IDirective;
   element: Element;
   $element: any = null;
-  componentScope: angular.IScope;
+  componentScope: IScope;
 
   constructor(
-      private helper: UpgradeHelper, scope: angular.IScope, private template: string,
+      private helper: UpgradeHelper, scope: IScope, private template: string,
       private inputs: string[], private outputs: string[], private propOuts: string[],
       private checkProperties: string[], private propertyMap: {[key: string]: string}) {
     this.directive = helper.directive;
@@ -189,7 +179,7 @@ class UpgradeNg1ComponentAdapter implements OnInit, OnChanges, DoCheck {
 
   ngOnInit() {
     // Collect contents, insert and compile template
-    const attachChildNodes: angular.ILinkFn|undefined = this.helper.prepareTransclusion();
+    const attachChildNodes: ILinkFn|undefined = this.helper.prepareTransclusion();
     const linkFn = this.helper.compileTemplate(this.template);
 
     // Instantiate controller (if not already done so)
@@ -210,10 +200,10 @@ class UpgradeNg1ComponentAdapter implements OnInit, OnChanges, DoCheck {
 
     // Linking
     const link = this.directive.link;
-    const preLink = (typeof link == 'object') && (link as angular.IDirectivePrePost).pre;
-    const postLink = (typeof link == 'object') ? (link as angular.IDirectivePrePost).post : link;
-    const attrs: angular.IAttributes = NOT_SUPPORTED;
-    const transcludeFn: angular.ITranscludeFunction = NOT_SUPPORTED;
+    const preLink = (typeof link == 'object') && (link as IDirectivePrePost).pre;
+    const postLink = (typeof link == 'object') ? (link as IDirectivePrePost).post : link;
+    const attrs: IAttributes = NOT_SUPPORTED;
+    const transcludeFn: ITranscludeFunction = NOT_SUPPORTED;
     if (preLink) {
       preLink(this.componentScope, this.$element, attrs, requiredControllers, transcludeFn);
     }

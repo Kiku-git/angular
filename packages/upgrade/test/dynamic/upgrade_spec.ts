@@ -11,6 +11,7 @@ import {async, fakeAsync, flushMicrotasks, tick} from '@angular/core/testing';
 import {BrowserModule} from '@angular/platform-browser';
 import {platformBrowserDynamic} from '@angular/platform-browser-dynamic';
 import * as angular from '@angular/upgrade/src/common/angular1';
+import {$EXCEPTION_HANDLER} from '@angular/upgrade/src/common/constants';
 import {UpgradeAdapter, UpgradeAdapterRef} from '@angular/upgrade/src/dynamic/upgrade_adapter';
 
 import {$apply, $digest, html, multiTrim, withEachNg1Version} from './test_helpers';
@@ -21,6 +22,7 @@ declare global {
 
 withEachNg1Version(() => {
   describe('adapter: ng1 to ng2', () => {
+
     beforeEach(() => destroyPlatform());
     afterEach(() => destroyPlatform());
 
@@ -218,8 +220,7 @@ withEachNg1Version(() => {
 
            @Component({selector: 'my-app', template: '<my-child [value]="value"></my-child>'})
            class AppComponent {
-             // TODO(issue/24571): remove '!'.
-             value !: number;
+             value?: number;
              constructor() { appComponent = this; }
            }
 
@@ -228,8 +229,7 @@ withEachNg1Version(() => {
              template: '<div>{{valueFromPromise}}',
            })
            class ChildComponent {
-             // TODO(issue/24571): remove '!'.
-             valueFromPromise !: number;
+             valueFromPromise?: number;
              @Input()
              set value(v: number) { expect(NgZone.isInAngularZone()).toBe(true); }
 
@@ -318,7 +318,7 @@ withEachNg1Version(() => {
       it('should bind properties, events', async(() => {
            const adapter: UpgradeAdapter = new UpgradeAdapter(forwardRef(() => Ng2Module));
            const ng1Module =
-               angular.module('ng1', []).value('$exceptionHandler', (err: any) => { throw err; });
+               angular.module('ng1', []).value($EXCEPTION_HANDLER, (err: any) => { throw err; });
 
            ng1Module.run(($rootScope: any) => {
              $rootScope.name = 'world';
@@ -819,9 +819,9 @@ withEachNg1Version(() => {
            @Component({
              selector: 'ng2',
              template: `
-               <ng1 inputAttrA="{{ dataA }}" inputB="{{ dataB }}"></ng1>
-               | Outside: {{ dataA }}, {{ dataB }}
-             `
+           <ng1 inputAttrA="{{ dataA }}" inputB="{{ dataB }}"></ng1>
+           | Outside: {{ dataA }}, {{ dataB }}
+         `
            })
            class Ng2Component {
              dataA = 'foo';
@@ -883,9 +883,9 @@ withEachNg1Version(() => {
            @Component({
              selector: 'ng2',
              template: `
-               <ng1 [inputAttrA]="dataA" [inputB]="dataB"></ng1>
-               | Outside: {{ dataA.value }}, {{ dataB.value }}
-             `
+           <ng1 [inputAttrA]="dataA" [inputB]="dataB"></ng1>
+           | Outside: {{ dataA.value }}, {{ dataB.value }}
+         `
            })
            class Ng2Component {
              dataA = {value: 'foo'};
@@ -947,9 +947,9 @@ withEachNg1Version(() => {
            @Component({
              selector: 'ng2',
              template: `
-               <ng1 [(inputAttrA)]="dataA" [(inputB)]="dataB"></ng1>
-               | Outside: {{ dataA.value }}, {{ dataB.value }}
-             `
+           <ng1 [(inputAttrA)]="dataA" [(inputB)]="dataB"></ng1>
+           | Outside: {{ dataA.value }}, {{ dataB.value }}
+         `
            })
            class Ng2Component {
              dataA = {value: 'foo'};
@@ -1576,7 +1576,7 @@ withEachNg1Version(() => {
            });
          }));
 
-      describe('with lifecycle hooks', () => {
+      describe('with life-cycle hooks', () => {
         it('should call `$onInit()` on controller', async(() => {
              const adapter: UpgradeAdapter = new UpgradeAdapter(forwardRef(() => Ng2Module));
              const $onInitSpyA = jasmine.createSpy('$onInitA');
@@ -2146,7 +2146,8 @@ withEachNg1Version(() => {
              }
 
              // On browsers that don't support `requestAnimationFrame` (IE 9, Android <= 4.3),
-             // `$animate` will use `setTimeout(..., 16.6)` instead. This timeout will still be on
+             // `$animate` will use `setTimeout(..., 16.6)` instead. This timeout will still be
+             // on
              // the queue at the end of the test, causing it to fail.
              // Mocking animations (via `ngAnimateMock`) avoids the issue.
              angular.module('ng1', ['ngAnimateMock'])
@@ -2191,7 +2192,8 @@ withEachNg1Version(() => {
              }
 
              // On browsers that don't support `requestAnimationFrame` (IE 9, Android <= 4.3),
-             // `$animate` will use `setTimeout(..., 16.6)` instead. This timeout will still be on
+             // `$animate` will use `setTimeout(..., 16.6)` instead. This timeout will still be
+             // on
              // the queue at the end of the test, causing it to fail.
              // Mocking animations (via `ngAnimateMock`) avoids the issue.
              angular.module('ng1', ['ngAnimateMock'])
@@ -2398,7 +2400,7 @@ withEachNg1Version(() => {
              const element = html(`<ng2></ng2>`);
 
              adapter.bootstrap(element, ['ng1']).ready(() => {
-               expect(log).toEqual(['ng1-ctrl', 'ng1-pre']);
+               setTimeout(() => expect(log).toEqual(['ng1-ctrl', 'ng1-pre']), 1000);
              });
            }));
 
@@ -2904,7 +2906,7 @@ withEachNg1Version(() => {
              // Define `ng1Module`
              const ng1Module =
                  angular.module('ng1Module', [])
-                     .value('$exceptionHandler', (error: Error) => errorMessage = error.message)
+                     .value($EXCEPTION_HANDLER, (error: Error) => errorMessage = error.message)
                      .component('ng1', ng1Component)
                      .directive('ng2', adapter.downgradeNg2Component(Ng2Component));
 

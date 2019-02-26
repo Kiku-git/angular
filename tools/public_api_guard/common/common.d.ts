@@ -61,7 +61,6 @@ export declare function formatNumber(value: number, locale: string, digitsInfo?:
 
 export declare function formatPercent(value: number, locale: string, digitsInfo?: string): string;
 
-/** @experimental */
 export declare enum FormatWidth {
     Short = 0,
     Medium = 1,
@@ -69,67 +68,47 @@ export declare enum FormatWidth {
     Full = 3
 }
 
-/** @experimental */
 export declare enum FormStyle {
     Format = 0,
     Standalone = 1
 }
 
-/** @experimental */
 export declare function getCurrencySymbol(code: string, format: 'wide' | 'narrow', locale?: string): string;
 
-/** @experimental */
 export declare function getLocaleCurrencyName(locale: string): string | null;
 
-/** @experimental */
 export declare function getLocaleCurrencySymbol(locale: string): string | null;
 
-/** @experimental */
 export declare function getLocaleDateFormat(locale: string, width: FormatWidth): string;
 
-/** @experimental */
 export declare function getLocaleDateTimeFormat(locale: string, width: FormatWidth): string;
 
-/** @experimental */
 export declare function getLocaleDayNames(locale: string, formStyle: FormStyle, width: TranslationWidth): string[];
 
-/** @experimental */
 export declare function getLocaleDayPeriods(locale: string, formStyle: FormStyle, width: TranslationWidth): [string, string];
 
-/** @experimental */
 export declare function getLocaleEraNames(locale: string, width: TranslationWidth): [string, string];
 
-/** @experimental */
 export declare function getLocaleExtraDayPeriodRules(locale: string): (Time | [Time, Time])[];
 
-/** @experimental */
 export declare function getLocaleExtraDayPeriods(locale: string, formStyle: FormStyle, width: TranslationWidth): string[];
 
-/** @experimental */
 export declare function getLocaleFirstDayOfWeek(locale: string): WeekDay;
 
-/** @experimental */
 export declare function getLocaleId(locale: string): string;
 
-/** @experimental */
 export declare function getLocaleMonthNames(locale: string, formStyle: FormStyle, width: TranslationWidth): string[];
 
-/** @experimental */
 export declare function getLocaleNumberFormat(locale: string, type: NumberFormatStyle): string;
 
-/** @experimental */
 export declare function getLocaleNumberSymbol(locale: string, symbol: NumberSymbol): string;
 
-/** @experimental */
 export declare function getLocalePluralCase(locale: string): (value: number) => Plural;
 
-/** @experimental */
 export declare function getLocaleTimeFormat(locale: string, width: FormatWidth): string;
 
-/** @experimental */
 export declare function getLocaleWeekEndRange(locale: string): [WeekDay, WeekDay];
 
-/** @experimental */
 export declare function getNumberOfCurrencyDigits(code: string): number;
 
 export declare class HashLocationStrategy extends LocationStrategy {
@@ -144,7 +123,6 @@ export declare class HashLocationStrategy extends LocationStrategy {
     replaceState(state: any, title: string, path: string, queryParams: string): void;
 }
 
-/** @experimental */
 export declare class I18nPluralPipe implements PipeTransform {
     constructor(_localization: NgLocalization);
     transform(value: number, pluralMap: {
@@ -152,23 +130,18 @@ export declare class I18nPluralPipe implements PipeTransform {
     }, locale?: string): string;
 }
 
-/** @experimental */
 export declare class I18nSelectPipe implements PipeTransform {
     transform(value: string | null | undefined, mapping: {
         [key: string]: string;
     }): string;
 }
 
-/** @experimental */
 export declare function isPlatformBrowser(platformId: Object): boolean;
 
-/** @experimental */
 export declare function isPlatformServer(platformId: Object): boolean;
 
-/** @experimental */
 export declare function isPlatformWorkerApp(platformId: Object): boolean;
 
-/** @experimental */
 export declare function isPlatformWorkerUi(platformId: Object): boolean;
 
 export declare class JsonPipe implements PipeTransform {
@@ -208,16 +181,13 @@ export declare class Location {
     static stripTrailingSlash(url: string): string;
 }
 
-/** @experimental */
 export declare const LOCATION_INITIALIZED: InjectionToken<Promise<any>>;
 
-/** @experimental */
 export interface LocationChangeEvent {
     state: any;
     type: string;
 }
 
-/** @experimental */
 export interface LocationChangeListener {
     (event: LocationChangeEvent): any;
 }
@@ -237,16 +207,24 @@ export declare class LowerCasePipe implements PipeTransform {
     transform(value: string): string;
 }
 
-export declare class NgClass implements DoCheck {
+export declare class NgClass extends NgClassBase implements DoCheck {
     klass: string;
     ngClass: string | string[] | Set<string> | {
         [klass: string]: any;
     };
-    constructor(_iterableDiffers: IterableDiffers, _keyValueDiffers: KeyValueDiffers, _ngEl: ElementRef, _renderer: Renderer2);
+    constructor(delegate: NgClassImpl);
     ngDoCheck(): void;
 }
 
-/** @experimental */
+export declare class NgClassBase {
+    protected _delegate: NgClassImpl;
+    constructor(_delegate: NgClassImpl);
+    getValue(): {
+        [key: string]: any;
+    } | null;
+    static ngDirectiveDef: any;
+}
+
 export declare class NgComponentOutlet implements OnChanges, OnDestroy {
     ngComponentOutlet: Type<any>;
     ngComponentOutletContent: any[][];
@@ -291,7 +269,6 @@ export declare class NgIfContext {
     ngIf: any;
 }
 
-/** @experimental */
 export declare class NgLocaleLocalization extends NgLocalization {
     /** @deprecated */ protected deprecatedPluralFn?: ((locale: string, value: string | number) => Plural) | null | undefined;
     protected locale: string;
@@ -300,30 +277,36 @@ export declare class NgLocaleLocalization extends NgLocalization {
     getPluralCategory(value: any, locale?: string): string;
 }
 
-/** @experimental */
 export declare abstract class NgLocalization {
     abstract getPluralCategory(value: any, locale?: string): string;
 }
 
-/** @experimental */
 export declare class NgPlural {
     ngPlural: number;
     constructor(_localization: NgLocalization);
     addCase(value: string, switchView: SwitchView): void;
 }
 
-/** @experimental */
 export declare class NgPluralCase {
     value: string;
     constructor(value: string, template: TemplateRef<Object>, viewContainer: ViewContainerRef, ngPlural: NgPlural);
 }
 
-export declare class NgStyle implements DoCheck {
+export declare class NgStyle extends NgStyleBase implements DoCheck {
     ngStyle: {
-        [key: string]: string;
-    };
-    constructor(_differs: KeyValueDiffers, _ngEl: ElementRef, _renderer: Renderer2);
+        [klass: string]: any;
+    } | null;
+    constructor(delegate: NgStyleImpl);
     ngDoCheck(): void;
+}
+
+export declare class NgStyleBase {
+    protected _delegate: NgStyleImpl;
+    constructor(_delegate: NgStyleImpl);
+    getValue(): {
+        [key: string]: any;
+    } | null;
+    static ngDirectiveDef: any;
 }
 
 export declare class NgSwitch {
@@ -341,13 +324,12 @@ export declare class NgSwitchDefault {
 }
 
 export declare class NgTemplateOutlet implements OnChanges {
-    ngTemplateOutlet: TemplateRef<any>;
-    ngTemplateOutletContext: Object;
+    ngTemplateOutlet: TemplateRef<any> | null;
+    ngTemplateOutletContext: Object | null;
     constructor(_viewContainerRef: ViewContainerRef);
     ngOnChanges(changes: SimpleChanges): void;
 }
 
-/** @experimental */
 export declare enum NumberFormatStyle {
     Decimal = 0,
     Percent = 1,
@@ -355,7 +337,6 @@ export declare enum NumberFormatStyle {
     Scientific = 3
 }
 
-/** @experimental */
 export declare enum NumberSymbol {
     Decimal = 0,
     Group = 1,
@@ -403,7 +384,6 @@ export declare abstract class PlatformLocation {
     abstract replaceState(state: any, title: string, url: string): void;
 }
 
-/** @experimental */
 export declare enum Plural {
     Zero = 0,
     One = 1,
@@ -413,7 +393,6 @@ export declare enum Plural {
     Other = 5
 }
 
-/** @experimental */
 export interface PopStateEvent {
     pop?: boolean;
     state?: any;
@@ -421,14 +400,12 @@ export interface PopStateEvent {
     url?: string;
 }
 
-/** @experimental */
 export declare function registerLocaleData(data: any, localeId?: string | any, extraData?: any): void;
 
 export declare class SlicePipe implements PipeTransform {
     transform(value: any, start: number, end?: number): any;
 }
 
-/** @experimental */
 export declare type Time = {
     hours: number;
     minutes: number;
@@ -438,7 +415,6 @@ export declare class TitleCasePipe implements PipeTransform {
     transform(value: string): string;
 }
 
-/** @experimental */
 export declare enum TranslationWidth {
     Narrow = 0,
     Abbreviated = 1,
@@ -461,7 +437,6 @@ export declare abstract class ViewportScroller {
     static ngInjectableDef: never;
 }
 
-/** @experimental */
 export declare enum WeekDay {
     Sunday = 0,
     Monday = 1,

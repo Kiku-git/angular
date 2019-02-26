@@ -54,7 +54,8 @@ withEachNg1Version(() => {
            imports: [BrowserModule, UpgradeModule]
          })
          class Ng2Module {
-           ngDoBootstrap() { /* this is a placeholder to stop the bootstrapper from complaining */
+           ngDoBootstrap() { /* this is a placeholder to stop the bootstrapper from
+                                complaining */
            }
          }
 
@@ -72,7 +73,8 @@ withEachNg1Version(() => {
                          template: 'ng1[Hello {{title}}!](<span ng-transclude></span>)'
                        };
                      })
-                 // This is wrapping (downgrading) an Angular component to be used in AngularJS
+                 // This is wrapping (downgrading) an Angular component to be used in
+                 // AngularJS
                  .directive('ng2', downgradeComponent({component: Ng2Component}));
 
          // This is the (AngularJS) application bootstrap element

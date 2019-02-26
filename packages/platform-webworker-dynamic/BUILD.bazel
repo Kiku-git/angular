@@ -10,7 +10,7 @@ ng_module(
             "src/**/*.ts",
         ],
     ),
-    module_name = "@angular/platform-webworker-dynamic",
+    bundle_dts = True,
     deps = [
         "//packages:types",
         "//packages/common",
@@ -25,8 +25,10 @@ ng_package(
     srcs = ["package.json"],
     entry_point = "packages/platform-webworker-dynamic/index.js",
     tags = [
-        "ivy-jit",
         "release-with-framework",
     ],
+    # Do not add more to this list.
+    # Dependencies on the full npm_package cause long re-builds.
+    visibility = ["//visibility:private"],
     deps = [":platform-webworker-dynamic"],
 )

@@ -5,14 +5,14 @@
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.io/license
  */
-import './ng_dev_mode';
+import '../util/ng_dev_mode';
 
-import {getContext} from './context_discovery';
-import {getRootContext} from './discovery_utils';
+import {getLContext} from './context_discovery';
 import {scheduleTick} from './instructions';
 import {ComponentInstance, DirectiveInstance, Player} from './interfaces/player';
-import {HEADER_OFFSET, RootContextFlags} from './interfaces/view';
+import {RootContextFlags} from './interfaces/view';
 import {addPlayerInternal, getOrCreatePlayerContext, getPlayerContext, getPlayersInternal, getStylingContext, throwInvalidRefError} from './styling/util';
+import {getRootContext} from './util/view_traversal_utils';
 
 /**
  * Adds a player to an element, directive or component instance that will later be
@@ -29,16 +29,16 @@ import {addPlayerInternal, getOrCreatePlayerContext, getPlayerContext, getPlayer
  */
 export function addPlayer(
     ref: ComponentInstance | DirectiveInstance | HTMLElement, player: Player): void {
-  const context = getContext(ref);
+  const context = getLContext(ref);
   if (!context) {
     ngDevMode && throwInvalidRefError();
     return;
   }
 
   const element = context.native as HTMLElement;
-  const lViewData = context.lViewData;
+  const lView = context.lView;
   const playerContext = getOrCreatePlayerContext(element, context) !;
-  const rootContext = getRootContext(lViewData);
+  const rootContext = getRootContext(lView);
   addPlayerInternal(playerContext, rootContext, element, player, 0, ref);
   scheduleTick(rootContext, RootContextFlags.FlushPlayers);
 }
@@ -50,15 +50,17 @@ export function addPlayer(
  * This function will only return players that have been added to the ref instance using
  * `addPlayer` or any players that are active through any template styling bindings
  * (`[style]`, `[style.prop]`, `[class]` and `[class.name]`).
+ *
+ * @publicApi
  */
 export function getPlayers(ref: ComponentInstance | DirectiveInstance | HTMLElement): Player[] {
-  const context = getContext(ref);
+  const context = getLContext(ref);
   if (!context) {
     ngDevMode && throwInvalidRefError();
     return [];
   }
 
-  const stylingContext = getStylingContext(context.nodeIndex - HEADER_OFFSET, context.lViewData);
+  const stylingContext = getStylingContext(context.nodeIndex, context.lView);
   const playerContext = stylingContext ? getPlayerContext(stylingContext) : null;
   return playerContext ? getPlayersInternal(playerContext) : [];
 }

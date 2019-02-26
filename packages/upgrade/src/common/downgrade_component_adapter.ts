@@ -8,10 +8,10 @@
 
 import {ApplicationRef, ChangeDetectorRef, ComponentFactory, ComponentRef, EventEmitter, Injector, OnChanges, SimpleChange, SimpleChanges, StaticProvider, Testability, TestabilityRegistry, Type} from '@angular/core';
 
-import * as angular from './angular1';
+import {IAttributes, IAugmentedJQuery, ICompileService, IInjectorService, INgModelController, IParseService, IScope} from './angular1';
 import {PropertyBinding} from './component_info';
 import {$SCOPE} from './constants';
-import {getComponentName, hookupNgModel, strictEquals} from './util';
+import {getTypeName, hookupNgModel, strictEquals} from './util';
 
 const INITIAL_VALUE = {
   __UNINITIALIZED__: true
@@ -21,7 +21,7 @@ export class DowngradeComponentAdapter {
   private implementsOnChanges = false;
   private inputChangeCount: number = 0;
   private inputChanges: SimpleChanges = {};
-  private componentScope: angular.IScope;
+  private componentScope: IScope;
   // TODO(issue/24571): remove '!'.
   private componentRef !: ComponentRef<any>;
   private component: any;
@@ -31,11 +31,10 @@ export class DowngradeComponentAdapter {
   private viewChangeDetector !: ChangeDetectorRef;
 
   constructor(
-      private element: angular.IAugmentedJQuery, private attrs: angular.IAttributes,
-      private scope: angular.IScope, private ngModel: angular.INgModelController,
-      private parentInjector: Injector, private $injector: angular.IInjectorService,
-      private $compile: angular.ICompileService, private $parse: angular.IParseService,
-      private componentFactory: ComponentFactory<any>,
+      private element: IAugmentedJQuery, private attrs: IAttributes, private scope: IScope,
+      private ngModel: INgModelController, private parentInjector: Injector,
+      private $injector: IInjectorService, private $compile: ICompileService,
+      private $parse: IParseService, private componentFactory: ComponentFactory<any>,
       private wrapCallback: <T>(cb: () => T) => () => T) {
     this.componentScope = scope.$new();
   }
@@ -81,7 +80,7 @@ export class DowngradeComponentAdapter {
     hookupNgModel(this.ngModel, this.component);
   }
 
-  setupInputs(needsNgZone: boolean, propagateDigest = true): void {
+  setupInputs(manuallyAttachView: boolean, propagateDigest = true): void {
     const attrs = this.attrs;
     const inputs = this.componentFactory.inputs || [];
     for (let i = 0; i < inputs.length; i++) {
@@ -159,7 +158,7 @@ export class DowngradeComponentAdapter {
 
     // If necessary, attach the view so that it will be dirty-checked.
     // (Allow time for the initial input values to be set and `ngOnChanges()` to be called.)
-    if (needsNgZone || !propagateDigest) {
+    if (manuallyAttachView || !propagateDigest) {
       let unwatch: Function|null = this.componentScope.$watch(() => {
         unwatch !();
         unwatch = null;
@@ -208,11 +207,12 @@ export class DowngradeComponentAdapter {
       });
     } else {
       throw new Error(
-          `Missing emitter '${output.prop}' on component '${getComponentName(this.componentFactory.componentType)}'!`);
+          `Missing emitter '${output.prop}' on component '${getTypeName(this.componentFactory.componentType)}'!`);
     }
   }
 
   registerCleanup() {
+    const testabilityRegistry = this.componentRef.injector.get(TestabilityRegistry);
     const destroyComponentRef = this.wrapCallback(() => this.componentRef.destroy());
     let destroyed = false;
 
@@ -220,8 +220,7 @@ export class DowngradeComponentAdapter {
     this.componentScope.$on('$destroy', () => {
       if (!destroyed) {
         destroyed = true;
-        this.componentRef.injector.get(TestabilityRegistry)
-            .unregisterApplication(this.componentRef.location.nativeElement);
+        testabilityRegistry.unregisterApplication(this.componentRef.location.nativeElement);
         destroyComponentRef();
       }
     });

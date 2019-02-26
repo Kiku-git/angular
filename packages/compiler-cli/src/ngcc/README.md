@@ -10,7 +10,7 @@ This conversion will allow such "legacy" packages to be used by the Ivy renderin
 The project is built using Bazel:
 
 ```bash
-bazel build //packages/compiler-cli/src/ngcc
+yarn bazel build //packages/compiler-cli/src/ngcc
 ```
 
 ## Unit Testing
@@ -18,13 +18,13 @@ bazel build //packages/compiler-cli/src/ngcc
 The unit tests are built and run using Bazel:
 
 ```bash
-bazel test //packages/compiler-cli/src/ngcc/test
+yarn bazel test //packages/compiler-cli/src/ngcc/test
 ```
 
 ## Integration Testing
 
-There are tests that check the behaviour of the overall executable:
+There are tests that check the behavior of the overall executable:
 
 ```bash
-bazel test //packages/compiler-cli/test/ngcc
+yarn bazel test //packages/compiler-cli/test/ngcc
 ```

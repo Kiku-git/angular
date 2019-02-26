@@ -2,8 +2,10 @@ load("//tools:defaults.bzl", "jasmine_node_test", "ts_library", "ts_web_test_sui
 
 ts_library(
     name = "test_lib",
-    testonly = 1,
+    testonly = True,
     srcs = glob(["**/*.ts"]),
+    # Visible to //:test_web_all target
+    visibility = ["//:__pkg__"],
     deps = [
         "//packages/core",
         "//packages/core/testing",
@@ -11,7 +13,7 @@ ts_library(
         "//packages/http/testing",
         "//packages/platform-browser",
         "//packages/platform-browser/testing",
-        "@rxjs",
+        "@ngdeps//rxjs",
     ],
 )
 

@@ -12,10 +12,9 @@ ng_module(
             "src/**/*.ts",
         ],
     ),
-    module_name = "@angular/common/http",
     deps = [
         "//packages/common",
         "//packages/core",
-        "@rxjs",
+        "@ngdeps//rxjs",
     ],
 )

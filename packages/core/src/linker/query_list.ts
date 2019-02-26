@@ -9,7 +9,7 @@
 import {Observable} from 'rxjs';
 
 import {EventEmitter} from '../event_emitter';
-import {getSymbolIterator} from '../util';
+import {getSymbolIterator} from '../util/symbol';
 
 
 /**
@@ -35,6 +35,8 @@ import {getSymbolIterator} from '../util';
  *   @ViewChildren(Item) items:QueryList<Item>;
  * }
  * ```
+ *
+ * @publicApi
  */
 export class QueryList<T>/* implements Iterable<T> */ {
   public readonly dirty = true;

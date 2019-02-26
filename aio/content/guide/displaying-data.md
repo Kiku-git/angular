@@ -149,7 +149,7 @@ In either style, the template data bindings have the same access to the componen
 Although this example uses variable assignment to initialize the components, you could instead declare and initialize the properties using a constructor:
 
 
-<code-example path="displaying-data/src/app/app-ctor.component.ts" linenums="false" region="class">
+<code-example path="displaying-data/src/app/app-ctor.component.1.ts" linenums="false" region="class">
 
 </code-example>
 
@@ -357,7 +357,7 @@ big chunks of HTML with many data bindings.
 
 
 Try it out. Because the array has four items, the message should appear.
-Go back into <code>app.component.ts"</code> and delete or comment out one of the elements from the hero array.
+Go back into <code>app.component.ts</code> and delete or comment out one of the elements from the hero array.
 The browser should refresh automatically and the message should disappear.
 
 

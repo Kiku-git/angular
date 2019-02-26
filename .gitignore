@@ -1,10 +1,10 @@
 .DS_STORE
 
 /dist/
-bazel-*
+/bazel-out
+/integration/bazel/bazel-*
 e2e_test.*
 node_modules
-bower_components
 tools/gulp-tasks/cldr/cldr-data/
 
 # Include when developing application packages.
@@ -12,10 +12,9 @@ pubspec.lock
 .c9
 .idea/
 .settings/
+.vscode/launch.json
 *.swo
 modules/.settings
-.bazelrc
-.vscode
 modules/.vscode
 
 # Don't check in secret files
@@ -30,3 +29,7 @@ yarn-error.log
 
 # rollup-test output
 /modules/rollup-test/dist/
+
+# User specific bazel settings
+.bazelrc.user
+

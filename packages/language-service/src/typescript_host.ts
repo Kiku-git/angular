@@ -38,11 +38,7 @@ export function createLanguageServiceFromTypescript(
  * syntactically incorrect templates.
  */
 export class DummyHtmlParser extends HtmlParser {
-  parse(
-      source: string, url: string, parseExpansionForms: boolean = false,
-      interpolationConfig: InterpolationConfig = DEFAULT_INTERPOLATION_CONFIG): ParseTreeResult {
-    return new ParseTreeResult([], []);
-  }
+  parse(): ParseTreeResult { return new ParseTreeResult([], []); }
 }
 
 /**
@@ -58,7 +54,7 @@ export class DummyResourceLoader extends ResourceLoader {
  * The `TypeScriptServiceHost` implements the Angular `LanguageServiceHost` using
  * the TypeScript language services.
  *
- * @experimental
+ * @publicApi
  */
 export class TypeScriptServiceHost implements LanguageServiceHost {
   // TODO(issue/24571): remove '!'.

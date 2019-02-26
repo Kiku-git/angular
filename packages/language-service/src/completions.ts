@@ -173,8 +173,9 @@ function getAttributeInfosForElement(
     matcher.match(elementSelector, selector => {
       let directive = selectorMap.get(selector);
       if (directive) {
-        attrs.push(...Object.keys(directive.inputs).map(name => ({name, input: true})));
-        attrs.push(...Object.keys(directive.outputs).map(name => ({name, output: true})));
+        const {inputs, outputs} = directive;
+        attrs.push(...Object.keys(inputs).map(name => ({name: inputs[name], input: true})));
+        attrs.push(...Object.keys(outputs).map(name => ({name: outputs[name], output: true})));
       }
     });
 
@@ -316,7 +317,7 @@ class ExpressionVisitor extends NullTemplateVisitor {
 
       // find the template binding that contains the position
       if (!this.attr.valueSpan) return;
-      const valueRelativePosition = this.position - this.attr.valueSpan.start.offset - 1;
+      const valueRelativePosition = this.position - this.attr.valueSpan.start.offset;
       const bindings = templateBindingResult.templateBindings;
       const binding =
           bindings.find(
@@ -401,7 +402,7 @@ class ExpressionVisitor extends NullTemplateVisitor {
 
   private get attributeValuePosition() {
     if (this.attr && this.attr.valueSpan) {
-      return this.position - this.attr.valueSpan.start.offset - 1;
+      return this.position - this.attr.valueSpan.start.offset;
     }
     return 0;
   }

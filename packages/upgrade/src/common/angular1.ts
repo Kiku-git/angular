@@ -10,7 +10,12 @@ export type Ng1Token = string;
 
 export type Ng1Expression = string | Function;
 
-export interface IAnnotatedFunction extends Function { $inject?: ReadonlyArray<Ng1Token>; }
+export interface IAnnotatedFunction extends Function {
+  // Older versions of `@types/angular` typings extend the global `Function` interface with
+  // `$inject?: string[]`, which is not compatible with `$inject?: ReadonlyArray<string>` (used in
+  // latest versions).
+  $inject?: Function extends{$inject?: string[]}? Ng1Token[]: ReadonlyArray<Ng1Token>;
+}
 
 export type IInjectable = (Ng1Token | Function)[] | IAnnotatedFunction;
 
@@ -245,12 +250,14 @@ try {
   if (window.hasOwnProperty('angular')) {
     angular = (<any>window).angular;
   }
-} catch (e) {
+} catch {
   // ignore in CJS mode.
 }
 
 /**
  * @deprecated Use `setAngularJSGlobal` instead.
+ *
+ * @publicApi
  */
 export function setAngularLib(ng: any): void {
   setAngularJSGlobal(ng);
@@ -258,6 +265,8 @@ export function setAngularLib(ng: any): void {
 
 /**
  * @deprecated Use `getAngularJSGlobal` instead.
+ *
+ * @publicApi
  */
 export function getAngularLib(): any {
   return getAngularJSGlobal();
@@ -267,6 +276,8 @@ export function getAngularLib(): any {
  * Resets the AngularJS global.
  *
  * Used when AngularJS is loaded lazily, and not available on `window`.
+ *
+ * @publicApi
  */
 export function setAngularJSGlobal(ng: any): void {
   angular = ng;
@@ -275,6 +286,8 @@ export function setAngularJSGlobal(ng: any): void {
 
 /**
  * Returns the current AngularJS global.
+ *
+ * @publicApi
  */
 export function getAngularJSGlobal(): any {
   return angular;

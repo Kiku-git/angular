@@ -32,7 +32,7 @@ import {UpgradeModule} from '@angular/upgrade/static';
  * }
  * ```
  *
- * @experimental
+ * @publicApi
  */
 export const RouterUpgradeInitializer = {
   provide: APP_BOOTSTRAP_LISTENER,
@@ -56,9 +56,9 @@ export function locationSyncBootstrapListener(ngUpgrade: UpgradeModule) {
  * History.pushState does not fire onPopState, so the Angular location
  * doesn't detect it. The workaround is to attach a location change listener
  *
- * @experimental
+ * @publicApi
  */
-export function setUpLocationSync(ngUpgrade: UpgradeModule) {
+export function setUpLocationSync(ngUpgrade: UpgradeModule, urlType: 'path' | 'hash' = 'path') {
   if (!ngUpgrade.$injector) {
     throw new Error(`
         RouterUpgradeInitializer can be used only after UpgradeModule.bootstrap has been called.
@@ -71,7 +71,16 @@ export function setUpLocationSync(ngUpgrade: UpgradeModule) {
 
   ngUpgrade.$injector.get('$rootScope')
       .$on('$locationChangeStart', (_: any, next: string, __: string) => {
-        const url = resolveUrl(next);
+        let url;
+        if (urlType === 'path') {
+          url = resolveUrl(next);
+        } else if (urlType === 'hash') {
+          // Remove the first hash from the URL
+          const hashIdx = next.indexOf('#');
+          url = resolveUrl(next.substring(0, hashIdx) + next.substring(hashIdx + 1));
+        } else {
+          throw 'Invalid URLType passed to setUpLocationSync: ' + urlType;
+        }
         const path = location.normalize(url.pathname);
         router.navigateByUrl(path + url.search + url.hash);
       });

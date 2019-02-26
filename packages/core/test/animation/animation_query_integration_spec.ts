@@ -12,12 +12,11 @@ import {ENTER_CLASSNAME, LEAVE_CLASSNAME} from '@angular/animations/browser/src/
 import {MockAnimationDriver, MockAnimationPlayer} from '@angular/animations/browser/testing';
 import {CommonModule} from '@angular/common';
 import {Component, HostBinding, ViewChild} from '@angular/core';
+import {TestBed, fakeAsync, flushMicrotasks} from '@angular/core/testing';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
+import {fixmeIvy, ivyEnabled} from '@angular/private/testing';
 
 import {HostListener} from '../../src/metadata/directives';
-import {TestBed} from '../../testing';
-import {fakeAsync, flushMicrotasks} from '../../testing/src/fake_async';
-
 
 (function() {
   // these tests are only mean't to be run within the DOM (for now)
@@ -1705,6 +1704,11 @@ import {fakeAsync, flushMicrotasks} from '../../testing/src/fake_async';
            TestBed.configureTestingModule({declarations: [ParentCmp, ChildCmp]});
            const fixture = TestBed.createComponent(ParentCmp);
            const cmp = fixture.componentInstance;
+
+           // In Ivy, change detection needs to run before the ViewQuery for cmp.child will resolve.
+           // Keeping this test enabled since we still want to test the animation logic in Ivy.
+           if (ivyEnabled) fixture.detectChanges();
+
            cmp.child.items = [4, 5, 6];
            fixture.detectChanges();
 

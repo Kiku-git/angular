@@ -10,7 +10,7 @@ import {InjectFlags} from './core';
 import {Identifiers} from './identifiers';
 import * as o from './output/output_ast';
 import {R3DependencyMetadata, R3FactoryDelegateType, R3FactoryMetadata, compileFactoryFunction} from './render3/r3_factory';
-import {mapToMapExpression} from './render3/util';
+import {mapToMapExpression, typeWithParameters} from './render3/util';
 
 export interface InjectableDef {
   expression: o.Expression;
@@ -21,7 +21,8 @@ export interface InjectableDef {
 export interface R3InjectableMetadata {
   name: string;
   type: o.Expression;
-  ctorDeps: R3DependencyMetadata[]|null;
+  typeArgumentCount: number;
+  ctorDeps: R3DependencyMetadata[]|'invalid'|null;
   providedIn: o.Expression;
   useClass?: o.Expression;
   useFactory?: o.Expression;
@@ -32,10 +33,6 @@ export interface R3InjectableMetadata {
 
 export function compileInjectable(meta: R3InjectableMetadata): InjectableDef {
   let result: {factory: o.Expression, statements: o.Statement[]}|null = null;
-
-  function makeFn(ret: o.Expression): o.Expression {
-    return o.fn([], [new o.ReturnStatement(ret)], undefined, undefined, `${meta.name}_Factory`);
-  }
 
   const factoryMeta = {
     name: meta.name,
@@ -49,11 +46,14 @@ export function compileInjectable(meta: R3InjectableMetadata): InjectableDef {
     // used to instantiate the class with dependencies injected, or deps are not specified and
     // the factory of the class is used to instantiate it.
     //
-    // A special case exists for useClass: Type where Type is the injectable type itself, in which
-    // case omitting deps just uses the constructor dependencies instead.
+    // A special case exists for useClass: Type where Type is the injectable type itself and no
+    // deps are specified, in which case 'useClass' is effectively ignored.
 
     const useClassOnSelf = meta.useClass.isEquivalent(meta.type);
-    const deps = meta.userDeps || (useClassOnSelf && meta.ctorDeps) || undefined;
+    let deps: R3DependencyMetadata[]|undefined = undefined;
+    if (meta.userDeps !== undefined) {
+      deps = meta.userDeps;
+    }
 
     if (deps !== undefined) {
       // factory: () => new meta.useClass(...deps)
@@ -63,6 +63,8 @@ export function compileInjectable(meta: R3InjectableMetadata): InjectableDef {
         delegateDeps: deps,
         delegateType: R3FactoryDelegateType.Class,
       });
+    } else if (useClassOnSelf) {
+      result = compileFactoryFunction(factoryMeta);
     } else {
       result = compileFactoryFunction({
         ...factoryMeta,
@@ -100,8 +102,8 @@ export function compileInjectable(meta: R3InjectableMetadata): InjectableDef {
 
   const expression = o.importExpr(Identifiers.defineInjectable).callFn([mapToMapExpression(
       {token, factory: result.factory, providedIn})]);
-  const type = new o.ExpressionType(
-      o.importExpr(Identifiers.InjectableDef, [new o.ExpressionType(meta.type)]));
+  const type = new o.ExpressionType(o.importExpr(
+      Identifiers.InjectableDef, [typeWithParameters(meta.type, meta.typeArgumentCount)]));
 
   return {
     expression,

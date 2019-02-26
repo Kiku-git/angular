@@ -10,11 +10,11 @@ ng_module(
             "src/**/*.ts",
         ],
     ),
-    module_name = "@angular/http",
+    bundle_dts = True,
     deps = [
         "//packages/core",
         "//packages/platform-browser",
-        "@rxjs",
+        "@ngdeps//rxjs",
     ],
 )
 
@@ -26,8 +26,12 @@ ng_package(
     ],
     entry_point = "packages/http/index.js",
     tags = [
-        "ivy-jit",
         "release-with-framework",
+    ],
+    # Do not add more to this list.
+    # Dependencies on the full npm_package cause long re-builds.
+    visibility = [
+        "//packages/compiler-cli/integrationtest:__pkg__",
     ],
     deps = [
         ":http",

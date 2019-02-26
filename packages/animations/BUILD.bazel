@@ -10,7 +10,7 @@ ng_module(
             "src/**/*.ts",
         ],
     ),
-    module_name = "@angular/animations",
+    bundle_dts = True,
     deps = [
         "//packages/core",
     ],
@@ -25,9 +25,13 @@ ng_package(
     ],
     entry_point = "packages/animations/index.js",
     tags = [
-        "ivy-jit",
-        "ivy-local",
         "release-with-framework",
+    ],
+    # Do not add more to this list.
+    # Dependencies on the full npm_package cause long re-builds.
+    visibility = [
+        "//packages/compiler-cli/integrationtest:__pkg__",
+        "//packages/compiler/test:__pkg__",
     ],
     deps = [
         ":animations",

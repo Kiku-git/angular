@@ -22,18 +22,15 @@ withEachNg1Version(() => {
     afterEach(() => destroyPlatform());
 
     it('should bind properties, events', async(() => {
-         const ng1Module =
-             angular.module('ng1', []).value('$exceptionHandler', (err: any) => {
-                                        throw err;
-                                      }).run(($rootScope: angular.IScope) => {
-               $rootScope['name'] = 'world';
-               $rootScope['dataA'] = 'A';
-               $rootScope['dataB'] = 'B';
-               $rootScope['modelA'] = 'initModelA';
-               $rootScope['modelB'] = 'initModelB';
-               $rootScope['eventA'] = '?';
-               $rootScope['eventB'] = '?';
-             });
+         const ng1Module = angular.module('ng1', []).run(($rootScope: angular.IScope) => {
+           $rootScope['name'] = 'world';
+           $rootScope['dataA'] = 'A';
+           $rootScope['dataB'] = 'B';
+           $rootScope['modelA'] = 'initModelA';
+           $rootScope['modelB'] = 'initModelB';
+           $rootScope['eventA'] = '?';
+           $rootScope['eventB'] = '?';
+         });
 
          @Component({
            selector: 'ng2',
@@ -149,12 +146,8 @@ withEachNg1Version(() => {
        }));
 
     it('should bind properties to onpush components', async(() => {
-         const ng1Module =
-             angular.module('ng1', []).value('$exceptionHandler', (err: any) => {
-                                        throw err;
-                                      }).run(($rootScope: angular.IScope) => {
-               $rootScope['dataB'] = 'B';
-             });
+         const ng1Module = angular.module('ng1', []).run(
+             ($rootScope: angular.IScope) => { $rootScope['dataB'] = 'B'; });
 
          @Component({
            selector: 'ng2',
@@ -743,7 +736,6 @@ withEachNg1Version(() => {
        }));
 
     it('should work with ng2 lazy loaded components', async(() => {
-
          let componentInjector: Injector;
 
          @Component({selector: 'ng2', template: ''})
@@ -787,9 +779,41 @@ withEachNg1Version(() => {
                childMod.componentFactoryResolver.resolveComponentFactory(LazyLoadedComponent) !;
            const lazyCmp = cmpFactory.create(componentInjector);
 
-           expect(lazyCmp.instance.module.injector).toBe(childMod.injector);
+           expect(lazyCmp.instance.module.injector === childMod.injector).toBe(true);
          });
 
+       }));
+
+    it('should throw if `downgradedModule` is specified', async(() => {
+         @Component({selector: 'ng2', template: ''})
+         class Ng2Component {
+         }
+
+         @NgModule({
+           declarations: [Ng2Component],
+           entryComponents: [Ng2Component],
+           imports: [BrowserModule, UpgradeModule],
+         })
+         class Ng2Module {
+           ngDoBootstrap() {}
+         }
+
+
+         const ng1Module = angular.module('ng1', []).directive(
+             'ng2', downgradeComponent({component: Ng2Component, downgradedModule: 'foo'}));
+
+         const element = html('<ng2></ng2>');
+
+         bootstrap(platformBrowserDynamic(), Ng2Module, element, ng1Module)
+             .then(
+                 () => { throw new Error('Expected bootstraping to fail.'); },
+                 err =>
+                     expect(err.message)
+                         .toBe(
+                             'Error while instantiating component \'Ng2Component\': \'downgradedModule\' ' +
+                             'unexpectedly specified.\n' +
+                             'You should not specify a value for \'downgradedModule\', unless you are ' +
+                             'downgrading more than one Angular module (via \'downgradeModule()\').'));
        }));
   });
 });

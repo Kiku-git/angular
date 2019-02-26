@@ -6,17 +6,26 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {Directive, InjectionToken, OnChanges, OnDestroy, Pipe, PipeTransform, createInjector, defineInjectable, defineInjector, ɵNgModuleDef as NgModuleDef, ɵPublicFeature as PublicFeature, ɵdefineComponent as defineComponent, ɵdirectiveInject as directiveInject} from '@angular/core';
+import {Directive as _Directive, InjectionToken, OnChanges, OnDestroy, Pipe as _Pipe, PipeTransform, WrappedValue, defineInjectable, defineInjector, ɵNgModuleDef as NgModuleDef, ɵdefineComponent as defineComponent, ɵdirectiveInject as directiveInject} from '@angular/core';
 import {expect} from '@angular/platform-browser/testing/src/matchers';
 
+import {createInjector} from '../../src/di/r3_injector';
 import {defineDirective, definePipe} from '../../src/render3/definition';
 import {bind, container, containerRefreshEnd, containerRefreshStart, elementEnd, elementProperty, elementStart, embeddedViewEnd, embeddedViewStart, interpolation1, load, text, textBinding} from '../../src/render3/instructions';
 import {RenderFlags} from '../../src/render3/interfaces/definition';
 import {pipe, pipeBind1, pipeBind3, pipeBind4, pipeBindV} from '../../src/render3/pipe';
 
 import {RenderLog, getRendererFactory2, patchLoggingRenderer2} from './imported_renderer2';
-import {ComponentFixture, createComponent, getDirectiveOnNode, renderToHtml} from './render_util';
+import {ComponentFixture, TemplateFixture, createComponent, getDirectiveOnNode, renderToHtml} from './render_util';
 
+const Directive: typeof _Directive = function(...args: any[]): any {
+  // In test we use @Directive for documentation only so it's safe to mock out the implementation.
+  return () => undefined;
+} as any;
+const Pipe: typeof _Pipe = function(...args: any[]): any {
+  // In test we use @Pipe for documentation only so it's safe to mock out the implementation.
+  return () => undefined;
+} as any;
 
 let log: string[] = [];
 let person: Person;
@@ -31,7 +40,8 @@ describe('pipe', () => {
     person = new Person();
   });
 
-  const pipes = () => [CountingPipe, MultiArgPipe, CountingImpurePipe];
+  const pipes =
+      () => [CountingPipe, MultiArgPipe, CountingImpurePipe, DuplicatePipe1, DuplicatePipe2];
 
   it('should support interpolation', () => {
     function Template(rf: RenderFlags, person: Person) {
@@ -61,7 +71,7 @@ describe('pipe', () => {
 
     expect(() => {
       const fixture = new ComponentFixture(App);
-    }).toThrowError(/Pipe with name 'randomPipeName' not found!/);
+    }).toThrowError(/The pipe 'randomPipeName' could not be found!/);
   });
 
   it('should support bindings', () => {
@@ -160,16 +170,31 @@ describe('pipe', () => {
         elementEnd();
       }
       if (rf & RenderFlags.Update) {
-        elementProperty(0, 'someProp', bind(pipeBind1(1, 1, 'Megatron')));
+        elementProperty(0, 'id', bind(pipeBind1(1, 1, 'Megatron')));
       }
     }
 
     renderToHtml(Template, person, 2, 3, null, [IdentityPipe], rendererFactory2);
-    expect(renderLog.log).toEqual(['someProp=Megatron']);
+    expect(renderLog.log).toEqual(['id=Megatron']);
 
     renderLog.clear();
     renderToHtml(Template, person, 2, 3, null, pipes, rendererFactory2);
     expect(renderLog.log).toEqual([]);
+  });
+
+  it('should support duplicates by using the later entry', () => {
+    function Template(rf: RenderFlags, person: Person) {
+      if (rf & RenderFlags.Create) {
+        text(0);
+        pipe(1, 'duplicatePipe');
+      }
+      if (rf & RenderFlags.Update) {
+        textBinding(0, interpolation1('', pipeBind1(1, 1, person.name), ''));
+      }
+    }
+
+    person.init('bob', null);
+    expect(renderToHtml(Template, person, 2, 3, null, pipes)).toEqual('bob from duplicate 2');
   });
 
   describe('pure', () => {
@@ -230,8 +255,8 @@ describe('pipe', () => {
           container(4);
         }
         if (rf & RenderFlags.Update) {
-          elementProperty(0, 'someProp', bind(pipeBind1(1, 2, true)));
-          elementProperty(2, 'someProp', bind(pipeBind1(3, 4, true)));
+          elementProperty(0, 'id', bind(pipeBind1(1, 2, true)));
+          elementProperty(2, 'id', bind(pipeBind1(3, 4, true)));
           pipeInstances.push(load<CountingImpurePipe>(1), load(3));
           containerRefreshStart(4);
           {
@@ -244,7 +269,7 @@ describe('pipe', () => {
                   elementEnd();
                 }
                 if (rf1 & RenderFlags.Update) {
-                  elementProperty(0, 'someProp', bind(pipeBind1(1, 1, true)));
+                  elementProperty(0, 'id', bind(pipeBind1(1, 1, true)));
                   pipeInstances.push(load<CountingImpurePipe>(1));
                 }
               }
@@ -367,7 +392,6 @@ describe('pipe', () => {
         static ngComponentDef = defineComponent({
           type: MyComponent,
           selectors: [['my-app']],
-          features: [PublicFeature],
           factory: function MyComponent_Factory() { return new MyComponent(); },
           consts: 2,
           vars: 3,
@@ -409,6 +433,45 @@ describe('pipe', () => {
 
   });
 
+  describe('WrappedValue', () => {
+    @Pipe({name: 'wrappingPipe'})
+    class WrappingPipe implements PipeTransform {
+      transform(value: any) { return new WrappedValue('Bar'); }
+
+      static ngPipeDef = definePipe({
+        name: 'wrappingPipe',
+        type: WrappingPipe,
+        factory: function WrappingPipe_Factory() { return new WrappingPipe(); },
+        pure: false
+      });
+    }
+
+    function createTemplate() {
+      text(0);
+      pipe(1, 'wrappingPipe');
+    }
+
+    function updateTemplate() { textBinding(0, interpolation1('', pipeBind1(1, 1, null), '')); }
+
+    it('should unwrap', () => {
+      const fixture =
+          new TemplateFixture(createTemplate, updateTemplate, 2, 3, undefined, [WrappingPipe]);
+      expect(fixture.html).toEqual('Bar');
+    });
+
+    it('should force change detection', () => {
+      const fixture =
+          new TemplateFixture(createTemplate, updateTemplate, 2, 3, undefined, [WrappingPipe]);
+      expect(fixture.html).toEqual('Bar');
+
+      fixture.hostElement.childNodes[0] !.textContent = 'Foo';
+      expect(fixture.html).toEqual('Foo');
+
+      fixture.update();
+      expect(fixture.html).toEqual('Bar');
+    });
+  });
+
 });
 
 @Pipe({name: 'countingPipe'})
@@ -448,6 +511,28 @@ class MultiArgPipe implements PipeTransform {
     name: 'multiArgPipe',
     type: MultiArgPipe,
     factory: function MultiArgPipe_Factory() { return new MultiArgPipe(); },
+  });
+}
+
+@Pipe({name: 'duplicatePipe'})
+class DuplicatePipe1 implements PipeTransform {
+  transform(value: any) { return `${value} from duplicate 1`; }
+
+  static ngPipeDef = definePipe({
+    name: 'duplicatePipe',
+    type: DuplicatePipe1,
+    factory: function DuplicatePipe1_Factory() { return new DuplicatePipe1(); },
+  });
+}
+
+@Pipe({name: 'duplicatePipe'})
+class DuplicatePipe2 implements PipeTransform {
+  transform(value: any) { return `${value} from duplicate 2`; }
+
+  static ngPipeDef = definePipe({
+    name: 'duplicatePipe',
+    type: DuplicatePipe2,
+    factory: function DuplicatePipe2_Factory() { return new DuplicatePipe2(); },
   });
 }
 

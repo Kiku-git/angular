@@ -6,14 +6,14 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {Compiler, CompilerOptions, Directive, Injector, NgModule, NgModuleRef, NgZone, StaticProvider, Testability, Type} from '@angular/core';
+import {Compiler, CompilerOptions, Injector, NgModule, NgModuleRef, NgZone, StaticProvider, Testability, Type, resolveForwardRef} from '@angular/core';
 import {platformBrowserDynamic} from '@angular/platform-browser-dynamic';
 
-import * as angular from '../common/angular1';
-import {$$TESTABILITY, $COMPILE, $INJECTOR, $ROOT_SCOPE, COMPILER_KEY, INJECTOR_KEY, LAZY_MODULE_REF, NG_ZONE_KEY} from '../common/constants';
+import {IAngularBootstrapConfig, IAugmentedJQuery, IInjectorService, IModule, IProvideService, IRootScopeService, ITestabilityService, bootstrap, element as angularElement, module as angularModule} from '../common/angular1';
+import {$$TESTABILITY, $COMPILE, $INJECTOR, $ROOT_SCOPE, COMPILER_KEY, INJECTOR_KEY, LAZY_MODULE_REF, NG_ZONE_KEY, UPGRADE_APP_TYPE_KEY} from '../common/constants';
 import {downgradeComponent} from '../common/downgrade_component';
 import {downgradeInjectable} from '../common/downgrade_injectable';
-import {Deferred, LazyModuleRef, controllerKey, onError} from '../common/util';
+import {Deferred, LazyModuleRef, UpgradeAppType, controllerKey, onError} from '../common/util';
 
 import {UpgradeNg1ComponentAdapterBuilder} from './upgrade_ng1_adapter';
 
@@ -99,6 +99,7 @@ let upgradeCount: number = 0;
  *
  * @deprecated Deprecated since v5. Use `upgrade/static` instead, which also supports
  * [Ahead-of-Time compilation](guide/aot-compiler).
+ * @publicApi
  */
 export class UpgradeAdapter {
   private idPrefix: string = `NG2_UPGRADE_${upgradeCount++}_`;
@@ -116,10 +117,10 @@ export class UpgradeAdapter {
   // TODO(issue/24571): remove '!'.
   private ngZone !: NgZone;
   // TODO(issue/24571): remove '!'.
-  private ng1Module !: angular.IModule;
+  private ng1Module !: IModule;
   private moduleRef: NgModuleRef<any>|null = null;
   // TODO(issue/24571): remove '!'.
-  private ng2BootstrapDeferred !: Deferred<angular.IInjectorService>;
+  private ng2BootstrapDeferred !: Deferred<IInjectorService>;
 
   constructor(private ng2AppModule: Type<any>, private compilerOptions?: CompilerOptions) {
     if (!ng2AppModule) {
@@ -381,7 +382,7 @@ export class UpgradeAdapter {
    * });
    * ```
    */
-  bootstrap(element: Element, modules?: any[], config?: angular.IAngularBootstrapConfig):
+  bootstrap(element: Element, modules?: any[], config?: IAngularBootstrapConfig):
       UpgradeAdapterRef {
     this.declareNg1Module(modules);
 
@@ -391,7 +392,7 @@ export class UpgradeAdapter {
     const windowAngular = (window as any /** TODO #???? */)['angular'];
     windowAngular.resumeBootstrap = undefined;
 
-    this.ngZone.run(() => { angular.bootstrap(element, [this.ng1Module.name], config !); });
+    this.ngZone.run(() => { bootstrap(element, [this.ng1Module.name], config !); });
     const ng1BootstrapPromise = new Promise((resolve) => {
       if (windowAngular.resumeBootstrap) {
         const originalResumeBootstrap: () => void = windowAngular.resumeBootstrap;
@@ -407,7 +408,7 @@ export class UpgradeAdapter {
     });
 
     Promise.all([this.ng2BootstrapDeferred.promise, ng1BootstrapPromise]).then(([ng1Injector]) => {
-      angular.element(element).data !(controllerKey(INJECTOR_KEY), this.moduleRef !.injector);
+      angularElement(element).data !(controllerKey(INJECTOR_KEY), this.moduleRef !.injector);
       this.moduleRef !.injector.get<NgZone>(NgZone).run(
           () => { (<any>upgrade)._bootstrapDone(this.moduleRef, ng1Injector); });
     }, onError);
@@ -449,7 +450,7 @@ export class UpgradeAdapter {
     const token = options && options.asToken || name;
     this.upgradedProviders.push({
       provide: token,
-      useFactory: ($injector: angular.IInjectorService) => $injector.get(name),
+      useFactory: ($injector: IInjectorService) => $injector.get(name),
       deps: [$INJECTOR]
     });
   }
@@ -494,32 +495,30 @@ export class UpgradeAdapter {
    * upgradeAdapter.declareNg1Module(['heroApp']);
    * ```
    */
-  private declareNg1Module(modules: string[] = []): angular.IModule {
+  private declareNg1Module(modules: string[] = []): IModule {
     const delayApplyExps: Function[] = [];
     let original$applyFn: Function;
     let rootScopePrototype: any;
-    let rootScope: angular.IRootScopeService;
+    let rootScope: IRootScopeService;
     const upgradeAdapter = this;
-    const ng1Module = this.ng1Module = angular.module(this.idPrefix, modules);
+    const ng1Module = this.ng1Module = angularModule(this.idPrefix, modules);
     const platformRef = platformBrowserDynamic();
 
     this.ngZone = new NgZone({enableLongStackTrace: Zone.hasOwnProperty('longStackTraceZoneSpec')});
     this.ng2BootstrapDeferred = new Deferred();
-    ng1Module.factory(INJECTOR_KEY, () => this.moduleRef !.injector.get(Injector))
+    ng1Module.constant(UPGRADE_APP_TYPE_KEY, UpgradeAppType.Dynamic)
+        .factory(INJECTOR_KEY, () => this.moduleRef !.injector.get(Injector))
         .factory(
             LAZY_MODULE_REF,
-            [
-              INJECTOR_KEY,
-              (injector: Injector) => ({ injector, needsNgZone: false } as LazyModuleRef)
-            ])
+            [INJECTOR_KEY, (injector: Injector) => ({ injector } as LazyModuleRef)])
         .constant(NG_ZONE_KEY, this.ngZone)
         .factory(COMPILER_KEY, () => this.moduleRef !.injector.get(Compiler))
         .config([
           '$provide', '$injector',
-          (provide: angular.IProvideService, ng1Injector: angular.IInjectorService) => {
+          (provide: IProvideService, ng1Injector: IInjectorService) => {
             provide.decorator($ROOT_SCOPE, [
               '$delegate',
-              function(rootScopeDelegate: angular.IRootScopeService) {
+              function(rootScopeDelegate: IRootScopeService) {
                 // Capture the root apply so that we can delay first call to $apply until we
                 // bootstrap Angular and then we replay and restore the $apply.
                 rootScopePrototype = rootScopeDelegate.constructor.prototype;
@@ -535,7 +534,7 @@ export class UpgradeAdapter {
             if (ng1Injector.has($$TESTABILITY)) {
               provide.decorator($$TESTABILITY, [
                 '$delegate',
-                function(testabilityDelegate: angular.ITestabilityService) {
+                function(testabilityDelegate: ITestabilityService) {
                   const originalWhenStable: Function = testabilityDelegate.whenStable;
                   // Cannot use arrow function below because we need the context
                   const newWhenStable = function(callback: Function) {
@@ -560,7 +559,7 @@ export class UpgradeAdapter {
 
     ng1Module.run([
       '$injector', '$rootScope',
-      (ng1Injector: angular.IInjectorService, rootScope: angular.IRootScopeService) => {
+      (ng1Injector: IInjectorService, rootScope: IRootScopeService) => {
         UpgradeNg1ComponentAdapterBuilder.resolve(this.ng1ComponentsToBeUpgraded, ng1Injector)
             .then(() => {
               // Note: There is a bug in TS 2.4 that prevents us from
@@ -572,7 +571,7 @@ export class UpgradeAdapter {
                   {provide: $COMPILE, useFactory: () => ng1Injector.get($COMPILE)},
                   this.upgradedProviders
                 ],
-                imports: [this.ng2AppModule],
+                imports: [resolveForwardRef(this.ng2AppModule)],
                 entryComponents: this.downgradedComponents
               };
               // At this point we have ng1 injector and we have prepared
@@ -621,7 +620,7 @@ class ParentInjectorPromise {
   private injector !: Injector;
   private callbacks: ((injector: Injector) => any)[] = [];
 
-  constructor(private element: angular.IAugmentedJQuery) {
+  constructor(private element: IAugmentedJQuery) {
     // store the promise on the element
     element.data !(controllerKey(INJECTOR_KEY), this);
   }
@@ -655,18 +654,19 @@ class ParentInjectorPromise {
  *
  * @deprecated Deprecated since v5. Use `upgrade/static` instead, which also supports
  * [Ahead-of-Time compilation](guide/aot-compiler).
+ * @publicApi
  */
 export class UpgradeAdapterRef {
   /* @internal */
   private _readyFn: ((upgradeAdapterRef?: UpgradeAdapterRef) => void)|null = null;
 
-  public ng1RootScope: angular.IRootScopeService = null !;
-  public ng1Injector: angular.IInjectorService = null !;
+  public ng1RootScope: IRootScopeService = null !;
+  public ng1Injector: IInjectorService = null !;
   public ng2ModuleRef: NgModuleRef<any> = null !;
   public ng2Injector: Injector = null !;
 
   /* @internal */
-  private _bootstrapDone(ngModuleRef: NgModuleRef<any>, ng1Injector: angular.IInjectorService) {
+  private _bootstrapDone(ngModuleRef: NgModuleRef<any>, ng1Injector: IInjectorService) {
     this.ng2ModuleRef = ngModuleRef;
     this.ng2Injector = ngModuleRef.injector;
     this.ng1Injector = ng1Injector;

@@ -6,8 +6,9 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
+import {RNode} from './renderer';
 import {StylingContext} from './styling';
-import {LViewData, TView} from './view';
+import {LView, TView} from './view';
 
 
 /**
@@ -21,30 +22,43 @@ export const enum TNodeType {
   Element = 0b011,
   ViewOrElement = 0b010,
   ElementContainer = 0b100,
+  IcuContainer = 0b101,
 }
 
 /**
  * Corresponds to the TNode.flags property.
  */
 export const enum TNodeFlags {
-  /** The number of directives on this node is encoded on the least significant bits */
-  DirectiveCountMask = 0b00000000000000000000111111111111,
-
   /** This bit is set if the node is a component */
-  isComponent = 0b00000000000000000001000000000000,
+  isComponent = 0b00001,
 
   /** This bit is set if the node has been projected */
-  isProjected = 0b00000000000000000010000000000000,
+  isProjected = 0b00010,
 
-  /** This bit is set if the node has any content queries */
-  hasContentQuery = 0b00000000000000000100000000000000,
+  /** This bit is set if any directive on this node has content queries */
+  hasContentQuery = 0b00100,
 
-  /** The index of the first directive on this node is encoded on the most significant bits  */
-  DirectiveStartingIndexShift = 15,
+  /** This bit is set if the node has any "class" inputs */
+  hasClassInput = 0b01000,
+
+  /** This bit is set if the node has any "style" inputs */
+  hasStyleInput = 0b10000,
 }
 
 /**
- * A set of marker values to be used in the attributes arrays. Those markers indicate that some
+ * Corresponds to the TNode.providerIndexes property.
+ */
+export const enum TNodeProviderIndexes {
+  /** The index of the first provider on this node is encoded on the least significant bits */
+  ProvidersStartIndexMask = 0b00000000000000001111111111111111,
+
+  /** The count of view providers from the component on this node is encoded on the 16 most
+     significant bits */
+  CptViewProvidersCountShift = 16,
+  CptViewProvidersCountShifter = 0b00000000000000010000000000000000,
+}
+/**
+ * A set of marker values to be used in the attributes arrays. These markers indicate that some
  * items are not regular attributes and the processing should be adapted accordingly.
  */
 export const enum AttributeMarker {
@@ -56,12 +70,49 @@ export const enum AttributeMarker {
   NamespaceURI = 0,
 
   /**
+    * Signals class declaration.
+    *
+    * Each value following `Classes` designates a class name to include on the element.
+    * ## Example:
+    *
+    * Given:
+    * ```
+    * <div class="foo bar baz">...<d/vi>
+    * ```
+    *
+    * the generated code is:
+    * ```
+    * var _c1 = [AttributeMarker.Classes, 'foo', 'bar', 'baz'];
+    * ```
+    */
+  Classes = 1,
+
+  /**
+   * Signals style declaration.
+   *
+   * Each pair of values following `Styles` designates a style name and value to include on the
+   * element.
+   * ## Example:
+   *
+   * Given:
+   * ```
+   * <div style="width:100px; height:200px; color:red">...</div>
+   * ```
+   *
+   * the generated code is:
+   * ```
+   * var _c1 = [AttributeMarker.Styles, 'width', '100px', 'height'. '200px', 'color', 'red'];
+   * ```
+   */
+  Styles = 2,
+
+  /**
    * This marker indicates that the following attribute names were extracted from bindings (ex.:
    * [foo]="exp") and / or event handlers (ex. (bar)="doSth()").
    * Taking the above bindings and outputs as an example an attributes array could look as follows:
    * ['class', 'fade in', AttributeMarker.SelectOnly, 'foo', 'bar']
    */
-  SelectOnly = 1
+  SelectOnly = 3,
 }
 
 /**
@@ -87,7 +138,7 @@ export interface TNode {
   type: TNodeType;
 
   /**
-   * Index of the TNode in TView.data and corresponding native element in LViewData.
+   * Index of the TNode in TView.data and corresponding native element in LView.
    *
    * This is necessary to get from any TNode to its corresponding native element when
    * traversing the node tree.
@@ -97,7 +148,7 @@ export interface TNode {
   index: number;
 
   /**
-   * The index of the closest injector in this node's LViewData.
+   * The index of the closest injector in this node's LView.
    *
    * If the index === -1, there is no injector on this node or any ancestor node in this view.
    *
@@ -112,15 +163,40 @@ export interface TNode {
   injectorIndex: number;
 
   /**
-   * This number stores two values using its bits:
-   *
-   * - the number of directives on that node (first 12 bits)
-   * - the starting index of the node's directives in the directives array (last 20 bits).
-   *
-   * These two values are necessary so DI can effectively search the directives associated
-   * with a node without searching the whole directives array.
+   * Stores starting index of the directives.
+   */
+  directiveStart: number;
+
+  /**
+   * Stores final exclusive index of the directives.
+   */
+  directiveEnd: number;
+
+  /**
+   * Stores the first index where property binding metadata is stored for
+   * this node.
+   */
+  propertyMetadataStartIndex: number;
+
+  /**
+   * Stores the exclusive final index where property binding metadata is
+   * stored for this node.
+   */
+  propertyMetadataEndIndex: number;
+
+  /**
+   * Stores if Node isComponent, isProjected, hasContentQuery, hasClassInput and hasStyleInput
    */
   flags: TNodeFlags;
+
+  /**
+   * This number stores two values using its bits:
+   *
+   * - the index of the first provider on that node (first 16 bits)
+   * - the count of view providers from the component on this node (last 16 bits)
+   */
+  // TODO(misko): break this into actual vars.
+  providerIndexes: TNodeProviderIndexes;
 
   /** The tag name associated with this node. */
   tagName: string|null;
@@ -231,12 +307,6 @@ export interface TNode {
    */
   parent: TElementNode|TContainerNode|null;
 
-  /**
-   * If this node is part of an i18n block, it indicates whether this container is part of the DOM
-   * If this node is not part of an i18n block, this field is null.
-   */
-  detached: boolean|null;
-
   stylingTemplate: StylingContext|null;
   /**
    * List of projected TNodes for a given component host element OR index into the said nodes.
@@ -273,8 +343,24 @@ export interface TNode {
    *     `getHost(currentTNode).projection[currentTNode.projection]`.
    * - When projecting nodes the parent node retrieved may be a `<ng-content>` node, in which case
    *   the process is recursive in nature (not implementation).
+   *
+   * If `projection` is of type `RNode[][]` than we have a collection of native nodes passed as
+   * projectable nodes during dynamic component creation.
    */
-  projection: (TNode|null)[]|number|null;
+  projection: (TNode|RNode[])[]|number|null;
+
+  /**
+   * A buffer of functions that will be called once `elementEnd` (or `element`) completes.
+   *
+   * Due to the nature of how directives work in Angular, some directive code may
+   * need to fire after any template-level code runs. If present, this array will
+   * be flushed (each function will be invoked) once the associated element is
+   * created.
+   *
+   * If an element is created multiple times then this function will be populated
+   * with functions each time the creation block is called.
+   */
+  onElementCreationFns: Function[]|null;
 }
 
 /** Static data for an element  */
@@ -292,10 +378,10 @@ export interface TElementNode extends TNode {
 
   /**
    * If this is a component TNode with projection, this will be an array of projected
-   * TNodes (see TNode.projection for more info). If it's a regular element node or a
-   * component without projection, it will be null.
+   * TNodes or native nodes (see TNode.projection for more info). If it's a regular element node or
+   * a component without projection, it will be null.
    */
-  projection: (TNode|null)[]|null;
+  projection: (TNode|RNode[])[]|null;
 }
 
 /** Static data for a text node */
@@ -335,15 +421,29 @@ export interface TContainerNode extends TNode {
   projection: null;
 }
 
-
 /** Static data for an <ng-container> */
 export interface TElementContainerNode extends TNode {
-  /** Index in the LViewData[] array. */
+  /** Index in the LView[] array. */
   index: number;
   child: TElementNode|TTextNode|TContainerNode|TElementContainerNode|TProjectionNode|null;
   parent: TElementNode|TElementContainerNode|null;
   tViews: null;
   projection: null;
+}
+
+/** Static data for an ICU expression */
+export interface TIcuContainerNode extends TNode {
+  /** Index in the LView[] array. */
+  index: number;
+  child: TElementNode|TTextNode|null;
+  parent: TElementNode|TElementContainerNode|null;
+  tViews: null;
+  projection: null;
+  /**
+   * Indicates the current active case for an ICU expression.
+   * It is null when there is no active case.
+   */
+  activeCaseIndex: number|null;
 }
 
 /** Static data for a view  */
@@ -390,13 +490,13 @@ export type PropertyAliases = {
 /**
  * Store the runtime input or output names for all the directives.
  *
- * - Even indices: directive index
- * - Odd indices: minified / internal name
+ * i+0: directive instance index
+ * i+1: publicName
+ * i+2: privateName
  *
- * e.g. [0, 'change-minified']
+ * e.g. [0, 'change', 'change-minified']
  */
 export type PropertyAliasValue = (number | string)[];
-
 
 /**
  * This array contains information about input properties that
@@ -406,14 +506,15 @@ export type PropertyAliasValue = (number | string)[];
  *
  * Within each sub-array:
  *
- * Even indices: minified/internal input name
- * Odd indices: initial value
+ * i+0: attribute name
+ * i+1: minified/internal input name
+ * i+2: initial value
  *
  * If a directive on a node does not have any input properties
  * that should be set from attributes, its index is set to null
  * to avoid a sparse array.
  *
- * e.g. [null, ['role-min', 'button']]
+ * e.g. [null, ['role-min', 'minified-input', 'button']]
  */
 export type InitialInputData = (InitialInputs | null)[];
 
@@ -421,10 +522,11 @@ export type InitialInputData = (InitialInputs | null)[];
  * Used by InitialInputData to store input properties
  * that should be set once from attributes.
  *
- * Even indices: minified/internal input name
- * Odd indices: initial value
+ * i+0: attribute name
+ * i+1: minified/internal input name
+ * i+2: initial value
  *
- * e.g. ['role-min', 'button']
+ * e.g. ['role-min', 'minified-input', 'button']
  */
 export type InitialInputs = string[];
 
@@ -443,4 +545,4 @@ export type TNodeWithLocalRefs = TContainerNode | TElementNode | TElementContain
  * - `<div #nativeDivEl>` - `nativeDivEl` should point to the native `<div>` element;
  * - `<ng-template #tplRef>` - `tplRef` should point to the `TemplateRef` instance;
  */
-export type LocalRefExtractor = (tNode: TNodeWithLocalRefs, currentView: LViewData) => any;
+export type LocalRefExtractor = (tNode: TNodeWithLocalRefs, currentView: LView) => any;

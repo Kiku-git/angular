@@ -7,10 +7,15 @@
  */
 
 import {ApplicationRef} from '../application_ref';
-import {Provider} from '../di/provider';
-import {R3_COMPILE_NGMODULE} from '../ivy_switch/compiler/index';
-import {Type} from '../type';
+import {InjectorType, defineInjector} from '../di/interface/defs';
+import {Provider} from '../di/interface/provider';
+import {convertInjectableProviderToFactory} from '../di/util';
+import {Type} from '../interface/type';
+import {SchemaMetadata} from '../metadata/schema';
+import {NgModuleType} from '../render3';
+import {compileNgModule as render3CompileNgModule} from '../render3/jit/module';
 import {TypeDecorator, makeDecorator} from '../util/decorators';
+
 
 /**
  * Represents the expansion of an `NgModule` into its scopes.
@@ -24,6 +29,7 @@ import {TypeDecorator, makeDecorator} from '../util/decorators';
 export interface NgModuleTransitiveScopes {
   compilation: {directives: Set<any>; pipes: Set<any>;};
   exported: {directives: Set<any>; pipes: Set<any>;};
+  schemas: SchemaMetadata[]|null;
 }
 
 export type NgModuleDefWithMeta<T, Declarations, Imports, Exports> = NgModuleDef<T>;
@@ -63,6 +69,9 @@ export interface NgModuleDef<T> {
    * This should never be read directly, but accessed via `transitiveScopesFor`.
    */
   transitiveCompileScopes: NgModuleTransitiveScopes|null;
+
+  /** The set of schemas that declare elements to be allowed in the NgModule. */
+  schemas: SchemaMetadata[]|null;
 }
 
 /**
@@ -70,6 +79,8 @@ export interface NgModuleDef<T> {
  *
  * @param T the module type. In Ivy applications, this must be explicitly
  * provided.
+ *
+ * @publicApi
  */
 export interface ModuleWithProviders<
     T = any /** TODO(alxhub): remove default when callers pass explicit type param */> {
@@ -77,43 +88,9 @@ export interface ModuleWithProviders<
   providers?: Provider[];
 }
 
-/**
- * A schema definition associated with an NgModule.
- *
- * @see `@NgModule`, `CUSTOM_ELEMENTS_SCHEMA`, `NO_ERRORS_SCHEMA`
- *
- * @param name The name of a defined schema.
- *
- * @experimental
- */
-export interface SchemaMetadata { name: string; }
-
-/**
- * Defines a schema that allows an NgModule to contain the following:
- * - Non-Angular elements named with dash case (`-`).
- * - Element properties named with dash case (`-`).
- * Dash case is the naming convention for custom elements.
- *
- *
- */
-export const CUSTOM_ELEMENTS_SCHEMA: SchemaMetadata = {
-  name: 'custom-elements'
-};
-
-/**
- * Defines a schema that allows any property on any element.
- *
- * @experimental
- */
-export const NO_ERRORS_SCHEMA: SchemaMetadata = {
-  name: 'no-errors-schema'
-};
-
 
 /**
  * Type of the NgModule decorator / constructor function.
- *
- *
  */
 export interface NgModuleDecorator {
   /**
@@ -126,7 +103,7 @@ export interface NgModuleDecorator {
 /**
  * Type of the NgModule metadata.
  *
- *
+ * @publicApi
  */
 export interface NgModule {
   /**
@@ -320,6 +297,7 @@ export interface NgModule {
 
 /**
  * @Annotation
+ * @publicApi
  */
 export const NgModule: NgModuleDecorator = makeDecorator(
     'NgModule', (ngModule: NgModule) => ngModule, undefined, undefined,
@@ -334,7 +312,7 @@ export const NgModule: NgModuleDecorator = makeDecorator(
      * * The `imports` and `exports` options bring in members from other modules, and make
      * this module's members available to others.
      */
-    (type: Type<any>, meta: NgModule) => R3_COMPILE_NGMODULE(type, meta));
+    (type: NgModuleType, meta: NgModule) => SWITCH_COMPILE_NGMODULE(type, meta));
 
 /**
  * @description
@@ -354,5 +332,24 @@ export const NgModule: NgModuleDecorator = makeDecorator(
  * }
  * ```
  *
+ * @publicApi
  */
 export interface DoBootstrap { ngDoBootstrap(appRef: ApplicationRef): void; }
+
+function preR3NgModuleCompile(moduleType: InjectorType<any>, metadata: NgModule): void {
+  let imports = (metadata && metadata.imports) || [];
+  if (metadata && metadata.exports) {
+    imports = [...imports, metadata.exports];
+  }
+
+  moduleType.ngInjectorDef = defineInjector({
+    factory: convertInjectableProviderToFactory(moduleType, {useClass: moduleType}),
+    providers: metadata && metadata.providers,
+    imports: imports,
+  });
+}
+
+
+export const SWITCH_COMPILE_NGMODULE__POST_R3__ = render3CompileNgModule;
+const SWITCH_COMPILE_NGMODULE__PRE_R3__ = preR3NgModuleCompile;
+const SWITCH_COMPILE_NGMODULE: typeof render3CompileNgModule = SWITCH_COMPILE_NGMODULE__PRE_R3__;

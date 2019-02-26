@@ -93,18 +93,21 @@ export type FormHooks = 'change' | 'blur' | 'submit';
 /**
  * Interface for options provided to an `AbstractControl`.
  *
- * @experimental
+ * @publicApi
  */
 export interface AbstractControlOptions {
   /**
-   * List of validators applied to control.
+   * @description
+   * The list of validators applied to a control.
    */
   validators?: ValidatorFn|ValidatorFn[]|null;
   /**
-   * List of async validators applied to control.
+   * @description
+   * The list of async validators applied to control.
    */
   asyncValidators?: AsyncValidatorFn|AsyncValidatorFn[]|null;
   /**
+   * @description
    * The event name for control to update upon.
    */
   updateOn?: 'change'|'blur'|'submit';
@@ -130,6 +133,7 @@ function isOptionsObj(
  * @see [Reactive Forms Guide](/guide/reactive-forms)
  * @see [Dynamic Forms Guide](/guide/dynamic-form)
  *
+ * @publicApi
  */
 export abstract class AbstractControl {
   /** @internal */
@@ -194,7 +198,7 @@ export abstract class AbstractControl {
   /**
    * A control is `valid` when its `status` is `VALID`.
    *
-   * @see `status`
+   * @see {@link AbstractControl.status}
    *
    * @returns True if the control has passed all of its validation tests,
    * false otherwise.
@@ -204,7 +208,7 @@ export abstract class AbstractControl {
   /**
    * A control is `invalid` when its `status` is `INVALID`.
    *
-   * @see `status`
+   * @see {@link AbstractControl.status}
    *
    * @returns True if this control has failed one or more of its validation checks,
    * false otherwise.
@@ -214,7 +218,7 @@ export abstract class AbstractControl {
   /**
    * A control is `pending` when its `status` is `PENDING`.
    *
-   * @see `status`
+   * @see {@link AbstractControl.status}
    *
    * @returns True if this control is in the process of conducting a validation check,
    * false otherwise.
@@ -224,11 +228,11 @@ export abstract class AbstractControl {
   /**
    * A control is `disabled` when its `status` is `DISABLED`.
    *
-   * @see `status`
-   *
    * Disabled controls are exempt from validation checks and
    * are not included in the aggregate value of their ancestor
    * controls.
+   *
+   * @see {@link AbstractControl.status}
    *
    * @returns True if the control is disabled, false otherwise.
    */
@@ -237,10 +241,10 @@ export abstract class AbstractControl {
   /**
    * A control is `enabled` as long as its `status` is not `DISABLED`.
    *
-   * @see `status`
-   *
    * @returns True if the control has any status other than 'DISABLED',
    * false if the status is 'DISABLED'.
+   *
+   * @see {@link AbstractControl.status}
    *
    */
   get enabled(): boolean { return this.status !== DISABLED; }
@@ -296,6 +300,9 @@ export abstract class AbstractControl {
   /**
    * A multicasting observable that emits an event every time the validation `status` of the control
    * recalculates.
+   *
+   * @see {@link AbstractControl.status}
+   *
    */
   // TODO(issue/24571): remove '!'.
   public readonly statusChanges !: Observable<any>;
@@ -338,9 +345,13 @@ export abstract class AbstractControl {
 
   /**
    * Marks the control as `touched`. A control is touched by focus and
-   * blur events that do not change the value; compare `markAsDirty`;
+   * blur events that do not change the value.
    *
-   *  @param opts Configuration options that determine how the control propagates changes
+   * @see `markAsUntouched()`
+   * @see `markAsDirty()`
+   * @see `markAsPristine()`
+   *
+   * @param opts Configuration options that determine how the control propagates changes
    * and emits events events after marking is applied.
    * * `onlySelf`: When true, mark only this control. When false or not supplied,
    * marks all direct ancestors. Default is false.
@@ -354,12 +365,26 @@ export abstract class AbstractControl {
   }
 
   /**
+   * Marks the control and all its descendant controls as `touched`.
+   * @see `markAsTouched()`
+   */
+  markAllAsTouched(): void {
+    this.markAsTouched({onlySelf: true});
+
+    this._forEachChild((control: AbstractControl) => control.markAllAsTouched());
+  }
+
+  /**
    * Marks the control as `untouched`.
    *
    * If the control has any children, also marks all children as `untouched`
    * and recalculates the `touched` status of all parent controls.
    *
-   *  @param opts Configuration options that determine how the control propagates changes
+   * @see `markAsTouched()`
+   * @see `markAsDirty()`
+   * @see `markAsPristine()`
+   *
+   * @param opts Configuration options that determine how the control propagates changes
    * and emits events after the marking is applied.
    * * `onlySelf`: When true, mark only this control. When false or not supplied,
    * marks all direct ancestors. Default is false.
@@ -378,9 +403,13 @@ export abstract class AbstractControl {
 
   /**
    * Marks the control as `dirty`. A control becomes dirty when
-   * the control's is changed through the UI; compare `markAsTouched`.
+   * the control's value is changed through the UI; compare `markAsTouched`.
    *
-   *  @param opts Configuration options that determine how the control propagates changes
+   * @see `markAsTouched()`
+   * @see `markAsUntouched()`
+   * @see `markAsPristine()`
+   *
+   * @param opts Configuration options that determine how the control propagates changes
    * and emits events after marking is applied.
    * * `onlySelf`: When true, mark only this control. When false or not supplied,
    * marks all direct ancestors. Default is false.
@@ -400,7 +429,11 @@ export abstract class AbstractControl {
    * and recalculates the `pristine` status of all parent
    * controls.
    *
-   *  @param opts Configuration options that determine how the control emits events after
+   * @see `markAsTouched()`
+   * @see `markAsUntouched()`
+   * @see `markAsDirty()`
+   *
+   * @param opts Configuration options that determine how the control emits events after
    * marking is applied.
    * * `onlySelf`: When true, mark only this control. When false or not supplied,
    * marks all direct ancestors. Default is false..
@@ -421,7 +454,9 @@ export abstract class AbstractControl {
    *
    * A control is pending while the control performs async validation.
    *
-   *  @param opts Configuration options that determine how the control propagates changes and
+   * @see {@link AbstractControl.status}
+   *
+   * @param opts Configuration options that determine how the control propagates changes and
    * emits events after marking is applied.
    * * `onlySelf`: When true, mark only this control. When false or not supplied,
    * marks all direct ancestors. Default is false..
@@ -448,7 +483,9 @@ export abstract class AbstractControl {
    *
    * If the control has children, all children are also disabled.
    *
-   *  @param opts Configuration options that determine how the control propagates
+   * @see {@link AbstractControl.status}
+   *
+   * @param opts Configuration options that determine how the control propagates
    * changes and emits events after the control is disabled.
    * * `onlySelf`: When true, mark only this control. When false or not supplied,
    * marks all direct ancestors. Default is false..
@@ -458,6 +495,10 @@ export abstract class AbstractControl {
    * When false, no events are emitted.
    */
   disable(opts: {onlySelf?: boolean, emitEvent?: boolean} = {}): void {
+    // If parent has been marked artificially dirty we don't want to re-calculate the
+    // parent's dirtiness based on the children.
+    const skipPristineCheck = this._parentMarkedDirty(opts.onlySelf);
+
     (this as{status: string}).status = DISABLED;
     (this as{errors: ValidationErrors | null}).errors = null;
     this._forEachChild(
@@ -469,7 +510,7 @@ export abstract class AbstractControl {
       (this.statusChanges as EventEmitter<string>).emit(this.status);
     }
 
-    this._updateAncestors(opts);
+    this._updateAncestors({...opts, skipPristineCheck});
     this._onDisabledChange.forEach((changeFn) => changeFn(true));
   }
 
@@ -480,7 +521,9 @@ export abstract class AbstractControl {
    *
    * By default, if the control has children, all children are enabled.
    *
-   *  @param opts Configure options that control how the control propagates changes and
+   * @see {@link AbstractControl.status}
+   *
+   * @param opts Configure options that control how the control propagates changes and
    * emits events when marked as untouched
    * * `onlySelf`: When true, mark only this control. When false or not supplied,
    * marks all direct ancestors. Default is false..
@@ -490,19 +533,26 @@ export abstract class AbstractControl {
    * When false, no events are emitted.
    */
   enable(opts: {onlySelf?: boolean, emitEvent?: boolean} = {}): void {
+    // If parent has been marked artificially dirty we don't want to re-calculate the
+    // parent's dirtiness based on the children.
+    const skipPristineCheck = this._parentMarkedDirty(opts.onlySelf);
+
     (this as{status: string}).status = VALID;
     this._forEachChild(
         (control: AbstractControl) => { control.enable({...opts, onlySelf: true}); });
     this.updateValueAndValidity({onlySelf: true, emitEvent: opts.emitEvent});
 
-    this._updateAncestors(opts);
+    this._updateAncestors({...opts, skipPristineCheck});
     this._onDisabledChange.forEach((changeFn) => changeFn(false));
   }
 
-  private _updateAncestors(opts: {onlySelf?: boolean, emitEvent?: boolean}) {
+  private _updateAncestors(
+      opts: {onlySelf?: boolean, emitEvent?: boolean, skipPristineCheck?: boolean}) {
     if (this._parent && !opts.onlySelf) {
       this._parent.updateValueAndValidity(opts);
-      this._parent._updatePristine();
+      if (!opts.skipPristineCheck) {
+        this._parent._updatePristine();
+      }
       this._parent._updateTouched();
     }
   }
@@ -641,29 +691,70 @@ export abstract class AbstractControl {
   get(path: Array<string|number>|string): AbstractControl|null { return _find(this, path, '.'); }
 
   /**
-   * Reports error data for a specific error occurring in this control or in another control.
+   * @description
+   * Reports error data for the control with the given path.
    *
-   * @param errorCode The error code for which to retrieve data
-   * @param path The path to a control to check. If not supplied, checks for the error in this
-   * control.
+   * @param errorCode The code of the error to check
+   * @param path A list of control names that designates how to move from the current control
+   * to the control that should be queried for errors.
    *
-   * @returns The error data if the control with the given path has the given error, otherwise null
-   * or undefined.
+   * @usageNotes
+   * For example, for the following `FormGroup`:
+   *
+   * ```
+   * form = new FormGroup({
+   *   address: new FormGroup({ street: new FormControl() })
+   * });
+   * ```
+   *
+   * The path to the 'street' control from the root form would be 'address' -> 'street'.
+   *
+   * It can be provided to this method in one of two formats:
+   *
+   * 1. An array of string control names, e.g. `['address', 'street']`
+   * 1. A period-delimited list of control names in one string, e.g. `'address.street'`
+   *
+   * @returns error data for that particular error. If the control or error is not present,
+   * null is returned.
    */
-  getError(errorCode: string, path?: string[]): any {
+  getError(errorCode: string, path?: Array<string|number>|string): any {
     const control = path ? this.get(path) : this;
     return control && control.errors ? control.errors[errorCode] : null;
   }
 
   /**
+   * @description
    * Reports whether the control with the given path has the error specified.
    *
-   * @param errorCode The error code for which to retrieve data
-   * @param path The path to a control to check. If not supplied, checks for the error in this
-   * control.
-   * @returns True when the control with the given path has the error, otherwise false.
+   * @param errorCode The code of the error to check
+   * @param path A list of control names that designates how to move from the current control
+   * to the control that should be queried for errors.
+   *
+   * @usageNotes
+   * For example, for the following `FormGroup`:
+   *
+   * ```
+   * form = new FormGroup({
+   *   address: new FormGroup({ street: new FormControl() })
+   * });
+   * ```
+   *
+   * The path to the 'street' control from the root form would be 'address' -> 'street'.
+   *
+   * It can be provided to this method in one of two formats:
+   *
+   * 1. An array of string control names, e.g. `['address', 'street']`
+   * 1. A period-delimited list of control names in one string, e.g. `'address.street'`
+   *
+   * If no path is given, this method checks for the error on the current control.
+   *
+   * @returns whether the given error is present in the control at the given path.
+   *
+   * If the control is not present, false is returned.
    */
-  hasError(errorCode: string, path?: string[]): boolean { return !!this.getError(errorCode, path); }
+  hasError(errorCode: string, path?: Array<string|number>|string): boolean {
+    return !!this.getError(errorCode, path);
+  }
 
   /**
    * Retrieves the top-level ancestor of this control.
@@ -772,6 +863,16 @@ export abstract class AbstractControl {
       this._updateOn = (opts as AbstractControlOptions).updateOn !;
     }
   }
+
+  /**
+   * Check to see if parent has been marked artificially dirty.
+   *
+   * @internal
+   */
+  private _parentMarkedDirty(onlySelf?: boolean): boolean {
+    const parentDirty = this._parent && this._parent.dirty;
+    return !onlySelf && parentDirty && !this._parent._anyControlsDirty();
+  }
 }
 
 /**
@@ -867,8 +968,10 @@ export abstract class AbstractControl {
  *
  * console.log(control.value); // 'Drew'
  * console.log(control.status); // 'DISABLED'
+ * ```
  *
-*/
+ * @publicApi
+ */
 export class FormControl extends AbstractControl {
   /** @internal */
   _onChange: Function[] = [];
@@ -1124,6 +1227,8 @@ export class FormControl extends AbstractControl {
  *   one: new FormControl()
  * }, { updateOn: 'blur' });
  * ```
+ *
+ * @publicApi
  */
 export class FormGroup extends AbstractControl {
   /**
@@ -1372,9 +1477,9 @@ export class FormGroup extends AbstractControl {
     this._forEachChild((control: AbstractControl, name: string) => {
       control.reset(value[name], {onlySelf: true, emitEvent: options.emitEvent});
     });
-    this.updateValueAndValidity(options);
     this._updatePristine(options);
     this._updateTouched(options);
+    this.updateValueAndValidity(options);
   }
 
   /**
@@ -1540,7 +1645,7 @@ export class FormGroup extends AbstractControl {
  * the `FormArray` directly, as that result in strange and unexpected behavior such
  * as broken change detection.
  *
- *
+ * @publicApi
  */
 export class FormArray extends AbstractControl {
   /**
@@ -1773,9 +1878,9 @@ export class FormArray extends AbstractControl {
     this._forEachChild((control: AbstractControl, index: number) => {
       control.reset(value[index], {onlySelf: true, emitEvent: options.emitEvent});
     });
-    this.updateValueAndValidity(options);
     this._updatePristine(options);
     this._updateTouched(options);
+    this.updateValueAndValidity(options);
   }
 
   /**

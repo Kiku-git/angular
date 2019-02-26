@@ -76,12 +76,12 @@ withEachNg1Version(() => {
        }));
 
     it('should propagate changes to a downgraded component inside the ngZone', async(() => {
+         const element = html('<my-app></my-app>');
          let appComponent: AppComponent;
 
          @Component({selector: 'my-app', template: '<my-child [value]="value"></my-child>'})
          class AppComponent {
-           // TODO(issue/24571): remove '!'.
-           value !: number;
+           value?: number;
            constructor() { appComponent = this; }
          }
 
@@ -90,8 +90,7 @@ withEachNg1Version(() => {
            template: '<div>{{ valueFromPromise }}</div>',
          })
          class ChildComponent {
-           // TODO(issue/24571): remove '!'.
-           valueFromPromise !: number;
+           valueFromPromise?: number;
            @Input()
            set value(v: number) { expect(NgZone.isInAngularZone()).toBe(true); }
 
@@ -103,6 +102,7 @@ withEachNg1Version(() => {
              this.zone.onMicrotaskEmpty.subscribe(
                  () => { expect(element.textContent).toEqual('5'); });
 
+             // Create a micro-task to update the value to be rendered asynchronously.
              Promise.resolve().then(() => this.valueFromPromise = changes['value'].currentValue);
            }
          }
@@ -118,9 +118,6 @@ withEachNg1Version(() => {
 
          const ng1Module = angular.module('ng1', []).directive(
              'myApp', downgradeComponent({component: AppComponent}));
-
-
-         const element = html('<my-app></my-app>');
 
          bootstrap(platformBrowserDynamic(), Ng2Module, element, ng1Module).then((upgrade) => {
            appComponent.value = 5;

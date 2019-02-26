@@ -6,7 +6,8 @@
  * found in the LICENSE file at https://angular.io/license
  */
 
-import {R3_TEMPLATE_REF_FACTORY} from '../ivy_switch/runtime/index';
+import {injectTemplateRef as render3InjectTemplateRef} from '../render3/view_engine_compatibility';
+import {noop} from '../util/noop';
 
 import {ElementRef} from './element_ref';
 import {EmbeddedViewRef} from './view_ref';
@@ -28,6 +29,7 @@ import {EmbeddedViewRef} from './view_ref';
  * @see `ViewContainerRef`
  * @see [Navigate the Component Tree with DI](guide/dependency-injection-navtree)
  *
+ * @publicApi
  */
 export abstract class TemplateRef<C> {
   /**
@@ -45,13 +47,23 @@ export abstract class TemplateRef<C> {
   abstract get elementRef(): ElementRef;
 
   /**
-   * Creates a view object and attaches it to the view container of the parent view.
-   * @param context The context for the new view, inherited from the anchor element.
-   * @returns The new view object.
+   * Instantiates an embedded view based on this template,
+   * and attaches it to the view container.
+   * @param context The data-binding context of the embedded view, as declared
+   * in the `<ng-template>` usage.
+   * @returns The new embedded view object.
    */
   abstract createEmbeddedView(context: C): EmbeddedViewRef<C>;
 
-  /** @internal */
+  /**
+   * @internal
+   * @nocollapse
+   */
   static __NG_ELEMENT_ID__:
-      () => TemplateRef<any> = () => R3_TEMPLATE_REF_FACTORY(TemplateRef, ElementRef)
+      () => TemplateRef<any>| null = () => SWITCH_TEMPLATE_REF_FACTORY(TemplateRef, ElementRef)
 }
+
+export const SWITCH_TEMPLATE_REF_FACTORY__POST_R3__ = render3InjectTemplateRef;
+const SWITCH_TEMPLATE_REF_FACTORY__PRE_R3__ = noop;
+const SWITCH_TEMPLATE_REF_FACTORY: typeof render3InjectTemplateRef =
+    SWITCH_TEMPLATE_REF_FACTORY__PRE_R3__;

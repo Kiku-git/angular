@@ -4,7 +4,7 @@ load("//tools:defaults.bzl", "jasmine_node_test", "ts_library", "ts_web_test_sui
 
 ts_library(
     name = "render3_lib",
-    testonly = 1,
+    testonly = True,
     srcs = glob(
         ["**/*.ts"],
         exclude = [
@@ -22,30 +22,36 @@ ts_library(
         "//packages/common",
         "//packages/compiler",
         "//packages/core",
+        "//packages/core/src/di/interface",
+        "//packages/core/src/interface",
+        "//packages/core/src/util",
         "//packages/core/testing",
         "//packages/platform-browser",
         "//packages/platform-browser/animations",
         "//packages/platform-browser/testing",
         "//packages/private/testing",
+        "@ngdeps//rxjs",
     ],
 )
 
 ts_library(
     name = "domino",
-    testonly = 1,
+    testonly = True,
     srcs = [
         "domino.d.ts",
         "load_domino.ts",
     ],
     deps = [
+        "//packages/compiler",
         "//packages/platform-browser",
         "//packages/platform-server",
+        "@ngdeps//zone.js",
     ],
 )
 
 ts_library(
     name = "render3_node_lib",
-    testonly = 1,
+    testonly = True,
     srcs = [],
     deps = [
         ":domino",
@@ -60,6 +66,7 @@ jasmine_node_test(
     ],
     deps = [
         ":render3_node_lib",
+        "@ngdeps//zone.js",
     ],
 )
 
